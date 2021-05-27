@@ -33,9 +33,10 @@ namespace MyGIS
             // 
             // MyGIS
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(14F, 31F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 17F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1011, 571);
+            this.ClientSize = new System.Drawing.Size(826, 452);
+            this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
             this.Name = "MyGIS";
             this.Text = "MyGIS";
             this.ResumeLayout(false);
