@@ -10,9 +10,9 @@ using System.Windows.Forms;
 
 namespace MyGIS
 {
-    public partial class Form1 : Form
+    public partial class MyGIS : Form
     {
-        public Form1()
+        public MyGIS()
         {
             InitializeComponent();
         }
