@@ -270,9 +270,9 @@ namespace MyGIS
             public double unused9, unused10, unused11, unused12;
         }
 
-        ShapefileHeader ReadFileHeader(BinaryReader br)
+        ShapefileHeader ReadFileHeader(BinaryReader binaryReader)
         {
-            byte[] buff = br.ReadBytes(Marshal.SizeOf(typeof(ShapefileHeader)));
+            byte[] buff = binaryReader.ReadBytes(Marshal.SizeOf(typeof(ShapefileHeader)));
             GCHandle handle = GCHandle.Alloc(buff, GCHandleType.Pinned);
             ShapefileHeader header = (ShapefileHeader)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(ShapefileHeader));
             handle.Free();
@@ -322,9 +322,9 @@ namespace MyGIS
             public int shapeType;
         }
 
-        RecordHeader ReadRecordHeader(BinaryReader br)
+        RecordHeader ReadRecordHeader(BinaryReader binaryReader)
         {
-            byte[] buff = br.ReadBytes(Marshal.SizeOf(typeof(RecordHeader)));
+            byte[] buff = binaryReader.ReadBytes(Marshal.SizeOf(typeof(RecordHeader)));
             GCHandle handle = GCHandle.Alloc(buff, GCHandleType.Pinned);
             RecordHeader header = (RecordHeader)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(ShapefileHeader));
             handle.Free();
@@ -332,12 +332,12 @@ namespace MyGIS
             return header;
         }
 
-        int FromBigToLittle(int bigValue)
+        int FromBigToLittle(int value)
         {
             byte[] bytes = new byte[4];
 
             GCHandle handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
-            Marshal.StructureToPtr(bigValue, handle.AddrOfPinnedObject(), false);
+            Marshal.StructureToPtr(value, handle.AddrOfPinnedObject(), false);
             handle.Free();
             byte tmp1 = bytes[2];
             byte tmp2 = bytes[3];
