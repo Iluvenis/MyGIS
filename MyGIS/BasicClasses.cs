@@ -2,6 +2,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
+using System.Runtime.InteropServices;
 
 namespace MyGIS
 {
@@ -9,219 +11,238 @@ namespace MyGIS
     {
         public double x;
         public double y;
-        public GISVertex(double _x, double _y)
+        public GISVertex(double x, double y)
         {
-            x = _x;
-            y = _y;
+            this.x = x;
+            this.y = y;
         }
-        public double Distance(GISVertex anothervertex)
+        public double Distance(GISVertex vertex)
         {
-            return Math.Sqrt((x - anothervertex.x) * (x - anothervertex.x) + (y - anothervertex.y) * (y - anothervertex.y));
+            return Math.Sqrt((x - vertex.x) * (x - vertex.x) + (y - vertex.y) * (y - vertex.y));
         }
-
+        public void CopyFrom(GISVertex vertex)
+        {
+            x = vertex.x;
+            y = vertex.y;
+        }
     }
     class GISFeature
     {
-        public GISSpatial spatialpart;
-        public GISAttribute attributepart;
+        public GISSpatial spatial;
+        public GISAttribute attribute;
         public GISFeature(GISSpatial spatial, GISAttribute attribute)
         {
-            spatialpart = spatial;
-            attributepart = attribute;
+            this.spatial = spatial;
+            this.attribute = attribute;
         }
-        public void draw(Graphics graphics, GISView view, bool DrawAttributeOrNot, int index)
+        public void Draw(Graphics graphics, GISView view, bool shouldDrawAttribute, int index)
         {
-            spatialpart.draw(graphics, view);
-            if (DrawAttributeOrNot)
-                attributepart.draw(graphics, view, spatialpart.centroid, index);
+            spatial.Draw(graphics, view);
+            if (shouldDrawAttribute)
+                attribute.Draw(graphics, view, this.spatial.centroid, index);
 
         }
-        public object getAttribute(int index)
+        public object GetAttribute(int index)
         {
-            return attributepart.GetValue(index);
+            return this.attribute.GetValue(index);
         }
 
     }
     class GISAttribute
     {
-        ArrayList values = new ArrayList();
+        ArrayList attributes = new ArrayList();
         public void AddValue(object o)
         {
-            values.Add(o);
+            attributes.Add(o);
         }
         public object GetValue(int index)
         {
-            return values[index];
+            return attributes[index];
         }
-        public void draw(Graphics graphics, GISView view, GISVertex location, int index)
+        public void Draw(Graphics graphics, GISView view, GISVertex location, int index)
         {
-            Point screenpoint = new Point((int)location.x, (int)location.y);
-            graphics.DrawString(values[index].ToString(),
+            Point screenPoint = new Point((int)location.x, (int)location.y);
+            graphics.DrawString(attributes[index].ToString(),
                 new Font("宋体", 20),
                 new SolidBrush(Color.Green),
-                new PointF(screenpoint.X, screenpoint.Y));
+                new PointF(screenPoint.X, screenPoint.Y));
         }
     }
     abstract class GISSpatial
     {
         public GISVertex centroid;
         public GISExtent extent;
-        public abstract void draw(Graphics graphics, GISView view);
+        public abstract void Draw(Graphics graphics, GISView view);
     }
     class GISExtent
     {
-        double ZoomingFactor = 2;
-        double MovingFactor = 0.25;
+        double zoomingFactor = 2;
+        double movingFactor = 0.25;
         public void ChangeExtent(GISMapActions action)
         {
-            double newminx = bottomleft.x, newminy = bottomleft.y,
-            newmaxx = upright.x, newmaxy = upright.y;
+            double
+            minX = bottomLeft.x,
+            minY = bottomLeft.y,
+            maxX = topRight.x,
+            maxY = topRight.y;
             switch (action)
             {
-                case GISMapActions.zoomin:
-                    newminx = (getMinX() + getMaxX() - getWidth() / ZoomingFactor) / 2;
-                    newminy = (getMinY() + getMaxY() - getHeight() / ZoomingFactor) / 2;
-                    newmaxx = (getMinX() + getMaxX() + getWidth() / ZoomingFactor) / 2;
-                    newmaxy = (getMinY() + getMaxY() + getHeight() / ZoomingFactor) / 2;
+                case GISMapActions.ZoomIn:
+                    minX = (GetMinX() + GetMaxX() - GetWidth() / zoomingFactor) / 2;
+                    minY = (GetMinY() + GetMaxY() - GetHeight() / zoomingFactor) / 2;
+                    maxX = (GetMinX() + GetMaxX() + GetWidth() / zoomingFactor) / 2;
+                    maxY = (GetMinY() + GetMaxY() + GetHeight() / zoomingFactor) / 2;
                     break;
-                case GISMapActions.zoomout:
-                    newminx = (getMinX() + getMaxX() - getWidth() * ZoomingFactor) / 2;
-                    newminy = (getMinY() + getMaxY() - getHeight() * ZoomingFactor) / 2;
-                    newmaxx = (getMinX() + getMaxX() + getWidth() * ZoomingFactor) / 2;
-                    newmaxy = (getMinY() + getMaxY() + getHeight() * ZoomingFactor) / 2;
+                case GISMapActions.ZoomOut:
+                    minX = (GetMinX() + GetMaxX() - GetWidth() * zoomingFactor) / 2;
+                    minY = (GetMinY() + GetMaxY() - GetHeight() * zoomingFactor) / 2;
+                    maxX = (GetMinX() + GetMaxX() + GetWidth() * zoomingFactor) / 2;
+                    maxY = (GetMinY() + GetMaxY() + GetHeight() * zoomingFactor) / 2;
                     break;
-                case GISMapActions.moveup:
-                    newminy = getMinY() - getHeight() * MovingFactor;
-                    newmaxy = getMaxY() - getHeight() * MovingFactor;
+                case GISMapActions.MoveUp:
+                    minY = GetMinY() - GetHeight() * movingFactor;
+                    maxY = GetMaxY() - GetHeight() * movingFactor;
                     break;
-                case GISMapActions.movedown:
-                    newminy = getMinY() + getHeight() * MovingFactor;
-                    newmaxy = getMaxY() + getHeight() * MovingFactor;
+                case GISMapActions.MoveDown:
+                    minY = GetMinY() + GetHeight() * movingFactor;
+                    maxY = GetMaxY() + GetHeight() * movingFactor;
                     break;
-                case GISMapActions.moveleft:
-                    newminx = getMinX() + getWidth() * MovingFactor;
-                    newmaxx = getMaxX() + getWidth() * MovingFactor;
+                case GISMapActions.MoveLeft:
+                    minX = GetMinX() + GetWidth() * movingFactor;
+                    maxX = GetMaxX() + GetWidth() * movingFactor;
                     break;
-                case GISMapActions.moveright:
-                    newminx = getMinX() - getWidth() * MovingFactor;
-                    newmaxx = getMaxX() - getWidth() * MovingFactor;
+                case GISMapActions.MoveRight:
+                    minX = GetMinX() - GetWidth() * movingFactor;
+                    maxX = GetMaxX() - GetWidth() * movingFactor;
                     break;
             }
-            upright.x = newmaxx;
-            upright.y = newmaxy;
-            bottomleft.x = newminx;
-            bottomleft.y = newminy;
+            topRight.x = maxX;
+            topRight.y = maxY;
+            bottomLeft.x = minX;
+            bottomLeft.y = minY;
         }
-        public GISVertex bottomleft;
-        public GISVertex upright;
-        public GISExtent(GISVertex _bottomleft, GISVertex _upright)
+        public GISVertex bottomLeft;
+        public GISVertex topRight;
+        public GISExtent(GISVertex bottomLeft, GISVertex topRight)
         {
-            bottomleft = _bottomleft;
-            upright = _upright;
+            this.bottomLeft = bottomLeft;
+            this.topRight = topRight;
         }
-        public GISExtent(double minx, double miny, double maxx, double maxy)
+        public GISExtent(double minX, double minY, double maxX, double maxY)
         {
             //地图的显示范围
-            upright = new GISVertex(Math.Max(minx, maxx), Math.Max(maxy, miny));
-            bottomleft = new GISVertex(Math.Min(minx, maxx), Math.Min(miny, maxy));
+            topRight = new GISVertex(Math.Max(minX, maxX), Math.Max(maxY, minY));
+            bottomLeft = new GISVertex(Math.Min(minX, maxX), Math.Min(minY, maxY));
         }
-        public double getMinX()
+        public double GetMinX()
         {
-            return bottomleft.x;
+            return bottomLeft.x;
         }
-        public double getMinY()
+        public double GetMinY()
         {
-            return bottomleft.y;
+            return bottomLeft.y;
         }
-        public double getMaxX()
+        public double GetMaxX()
         {
-            return upright.x;
+            return topRight.x;
         }
-        public double getMaxY()
+        public double GetMaxY()
         {
-            return upright.y;
+            return topRight.y;
         }
-        public double getWidth()
+        public double GetWidth()
         {
-            return upright.x - bottomleft.x;
+            return topRight.x - bottomLeft.x;
         }
-        public double getHeight()
+        public double GetHeight()
         {
-            return upright.y - bottomleft.y;
+            return topRight.y - bottomLeft.y;
+        }
+
+        public void CopyFrom(GISExtent extent)
+        {
+            topRight.CopyFrom(extent.topRight);
+            bottomLeft.CopyFrom(extent.bottomLeft);
         }
     }
     class GISView
     {
-        GISExtent CurrentMapExtent;
-        Rectangle MapWindowSize;
-        double MapMinX, MapMinY;
-        int WinW, WinH;
-        double MapW, MapH;
-        double ScaleX, ScaleY;
-        public GISView(GISExtent _extent, Rectangle _rectangle)
+        GISExtent currentMapExtent;
+        Rectangle mapWindowSize;
+        double mapMinX, mapMinY;
+        int windowWidth, windowHeight;
+        double mapWidth, mapHeight;
+        double scaleX, scaleY;
+        public GISView(GISExtent extent, Rectangle rectangle)
         {
-            Update(_extent, _rectangle);
+            Update(extent, rectangle);
         }
-        public void Update(GISExtent _extent, Rectangle _rectangle)
+        public void Update(GISExtent extent, Rectangle rectangle)
         {
-            CurrentMapExtent = _extent;
-            MapWindowSize = _rectangle;
-            MapMinX = CurrentMapExtent.getMinX();
-            MapMinY = CurrentMapExtent.getMinY();
-            WinW = MapWindowSize.Width;
-            WinH = MapWindowSize.Height;
-            MapW = CurrentMapExtent.getWidth();
-            MapH = CurrentMapExtent.getHeight();
-            ScaleX = MapW / WinW;
-            ScaleY = MapH / WinH;
+            currentMapExtent = extent;
+            mapWindowSize = rectangle;
+            mapMinX = currentMapExtent.GetMinX();
+            mapMinY = currentMapExtent.GetMinY();
+            windowWidth = mapWindowSize.Width;
+            windowHeight = mapWindowSize.Height;
+            mapWidth = currentMapExtent.GetWidth();
+            mapHeight = currentMapExtent.GetHeight();
+            scaleX = mapWidth / windowWidth;
+            scaleY = mapHeight / windowHeight;
         }
-        public Point ToScreenPoint(GISVertex onevertex)
+        public Point ToscreenPoint(GISVertex vertex)
         {
-            double ScreenX = (onevertex.x - MapMinX) / ScaleX;
-            double ScreenY = WinH - (onevertex.y - MapMinY) / ScaleY;
+            double ScreenX = (vertex.x - mapMinX) / scaleX;
+            double ScreenY = windowHeight - (vertex.y - mapMinY) / scaleY;
             return new Point((int)ScreenX, (int)ScreenY);
 
         }
         public GISVertex ToMapVertex(Point point)
         {
-            double MapX = ScaleX * point.X + MapMinX;
-            double MapY = ScaleY * (WinH - point.Y) + MapMinY;
-            return new GISVertex(MapX, MapY);
+            double mapX = scaleX * point.X + mapMinX;
+            double mapY = scaleY * (windowHeight - point.Y) + mapMinY;
+            return new GISVertex(mapX, mapY);
         }
         public void ChangeView(GISMapActions action)
         {
-            CurrentMapExtent.ChangeExtent(action);
-            Update(CurrentMapExtent, MapWindowSize);
+            currentMapExtent.ChangeExtent(action);
+            Update(currentMapExtent, mapWindowSize);
+        }
+
+        public void UpdateExtent(GISExtent extent)
+        {
+            currentMapExtent.CopyFrom(extent);
+            Update(currentMapExtent, mapWindowSize);
         }
     }
     enum GISMapActions
     {
-        zoomin, zoomout,
-        moveup, movedown, moveleft, moveright
+        ZoomIn, ZoomOut,
+        MoveUp, MoveDown, MoveLeft, MoveRight
     };
     class GISPoint : GISSpatial
     {
-        public GISPoint(GISVertex onevertex)
+        public GISPoint(GISVertex vertex)
         {
-            centroid = onevertex;
-            extent = new GISExtent(onevertex, onevertex);
+            centroid = vertex;
+            extent = new GISExtent(vertex, vertex);
         }
-        public override void draw(Graphics graphics, GISView view)
+        public override void Draw(Graphics graphics, GISView view)
         {
-            Point screenpoint = view.ToScreenPoint(centroid);
+            Point screenPoint = view.ToscreenPoint(centroid);
             graphics.FillEllipse(new SolidBrush(Color.Red),
                 new Rectangle((int)(centroid.x) - 3, (int)(centroid.y) - 3, 6, 6));
 
         }
-        public double Distance(GISVertex anothervertex)
+        public double Distance(GISVertex vertex)
         {
-            return centroid.Distance(anothervertex);
+            return centroid.Distance(vertex);
         }
     }
     class GISLine : GISSpatial
     {
         List<GISVertex> AllVertexs;
-        public override void draw(Graphics graphics, GISView view)
+        public override void Draw(Graphics graphics, GISView view)
         {
 
         }
@@ -229,10 +250,145 @@ namespace MyGIS
     class GISPolygon : GISSpatial
     {
         List<GISVertex> AllVertexs;
-        public override void draw(Graphics graphics, GISView view)
+        public override void Draw(Graphics graphics, GISView view)
         {
 
         }
+    }
+    class GISShapefile
+    {
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        public struct ShapefileHeader
+        {
+            public int unused1, unused2, unused3, unused4;
+            public int unused5, unused6, unused7, unused8;
+            public int shapeType;
+            public double minX;
+            public double minY;
+            public double maxX;
+            public double maxY;
+            public double unused9, unused10, unused11, unused12;
+        }
 
+        ShapefileHeader ReadFileHeader(BinaryReader br)
+        {
+            byte[] buff = br.ReadBytes(Marshal.SizeOf(typeof(ShapefileHeader)));
+            GCHandle handle = GCHandle.Alloc(buff, GCHandleType.Pinned);
+            ShapefileHeader header = (ShapefileHeader)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(ShapefileHeader));
+            handle.Free();
+
+            return header;
+        }
+
+        GISPoint ReadPoint(byte[] recordContents)
+        {
+            double x = BitConverter.ToDouble(recordContents, 0);
+            double y = BitConverter.ToDouble(recordContents, 8);
+            return new GISPoint(new GISVertex(x, y));
+        }
+
+        public GISLayer ReadShapefile(string shapefileName)
+        {
+            FileStream fsr = new FileStream(shapefileName, FileMode.Open);
+            BinaryReader br = new BinaryReader(fsr);
+            ShapefileHeader sfh = ReadFileHeader(br);
+            ShapeType shapeType = (ShapeType)Enum.Parse(typeof(ShapeType), sfh.ToString());
+            GISExtent extent = new GISExtent(sfh.minX, sfh.minY, sfh.maxX, sfh.maxY);
+            GISLayer layer = new GISLayer(shapefileName, shapeType, extent);
+
+            while (br.PeekChar() != -1)
+            {
+                RecordHeader rh = ReadRecordHeader(br);
+                int recordLength = FromBigToLittle(rh.recordLength) * 2 - 4;
+                byte[] recordContents = br.ReadBytes(recordLength);
+                if (shapeType == ShapeType.Point)
+                {
+                    GISPoint point = ReadPoint(recordContents);
+                    GISFeature feature = new GISFeature(point, new GISAttribute());
+                    layer.AddFeature(feature);
+                }
+            }
+
+            br.Close();
+            fsr.Close();
+            return layer;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        struct RecordHeader
+        {
+            public int recordNumber;
+            public int recordLength;
+            public int shapeType;
+        }
+
+        RecordHeader ReadRecordHeader(BinaryReader br)
+        {
+            byte[] buff = br.ReadBytes(Marshal.SizeOf(typeof(RecordHeader)));
+            GCHandle handle = GCHandle.Alloc(buff, GCHandleType.Pinned);
+            RecordHeader header = (RecordHeader)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(ShapefileHeader));
+            handle.Free();
+
+            return header;
+        }
+
+        int FromBigToLittle(int bigValue)
+        {
+            byte[] bytes = new byte[4];
+
+            GCHandle handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+            Marshal.StructureToPtr(bigValue, handle.AddrOfPinnedObject(), false);
+            handle.Free();
+            byte tmp1 = bytes[2];
+            byte tmp2 = bytes[3];
+            bytes[3] = bytes[0];
+            bytes[2] = bytes[1];
+            bytes[1] = tmp1;
+            bytes[0] = tmp2;
+
+            return BitConverter.ToInt32(bytes, 0);
+        }
+    }
+
+    enum ShapeType
+    {
+        Point = 1,
+        Line = 3,
+        Polygon = 5
+    }
+
+    class GISLayer
+    {
+        public string name;
+        public GISExtent extent;
+        public bool shouldDrawAttribute;
+        public int labelIndex;
+        public ShapeType shapeType;
+        List<GISFeature> features = new List<GISFeature>();
+
+        public GISLayer(string name, ShapeType shapeType, GISExtent extent)
+        {
+            this.name = name;
+            this.shapeType = shapeType;
+            this.extent = extent;
+        }
+
+        public void Draw(Graphics graphics, GISView view)
+        {
+            for (int i = 0; i < features.Count; i++)
+            {
+                features[i].Draw(graphics, view, shouldDrawAttribute, labelIndex);
+            }
+        }
+
+        public void AddFeature(GISFeature feature)
+        {
+            features.Add(feature);
+        }
+
+        public int FeatureCount()
+        {
+            return features.Count;
+        }
     }
 }
