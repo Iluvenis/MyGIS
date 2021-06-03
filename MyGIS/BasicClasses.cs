@@ -289,18 +289,18 @@ namespace MyGIS
 
         public GISLayer ReadShapefile(string shapefileName)
         {
-            FileStream fsr = new FileStream(shapefileName, FileMode.Open);
-            BinaryReader br = new BinaryReader(fsr);
-            ShapefileHeader sfh = ReadFileHeader(br);
-            ShapeType shapeType = (ShapeType)Enum.Parse(typeof(ShapeType), sfh.ToString());
-            GISExtent extent = new GISExtent(sfh.minX, sfh.minY, sfh.maxX, sfh.maxY);
+            FileStream fileStream = new FileStream(shapefileName, FileMode.Open);
+            BinaryReader binaryReader = new BinaryReader(fileStream);
+            ShapefileHeader shapefileHeader = ReadFileHeader(binaryReader);
+            ShapeType shapeType = (ShapeType)Enum.Parse(typeof(ShapeType), shapefileHeader.ToString());
+            GISExtent extent = new GISExtent(shapefileHeader.minX, shapefileHeader.minY, shapefileHeader.maxX, shapefileHeader.maxY);
             GISLayer layer = new GISLayer(shapefileName, shapeType, extent);
 
-            while (br.PeekChar() != -1)
+            while (binaryReader.PeekChar() != -1)
             {
-                RecordHeader rh = ReadRecordHeader(br);
+                RecordHeader rh = ReadRecordHeader(binaryReader);
                 int recordLength = FromBigToLittle(rh.recordLength) * 2 - 4;
-                byte[] recordContents = br.ReadBytes(recordLength);
+                byte[] recordContents = binaryReader.ReadBytes(recordLength);
                 if (shapeType == ShapeType.Point)
                 {
                     GISPoint point = ReadPoint(recordContents);
@@ -309,8 +309,8 @@ namespace MyGIS
                 }
             }
 
-            br.Close();
-            fsr.Close();
+            binaryReader.Close();
+            fileStream.Close();
             return layer;
         }
 
