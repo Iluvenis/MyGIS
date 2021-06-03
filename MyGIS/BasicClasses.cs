@@ -70,8 +70,22 @@ namespace MyGIS
     }
     class GISExtent
     {
+        //地图的显示范围
+        public GISVertex bottomLeft;
+        public GISVertex topRight;
         double zoomingFactor = 2;
         double movingFactor = 0.25;
+        
+        public GISExtent(GISVertex bottomLeft, GISVertex topRight)
+        {
+            this.bottomLeft = bottomLeft;
+            this.topRight = topRight;
+        }
+        public GISExtent(double minX, double minY, double maxX, double maxY)
+        {
+            topRight = new GISVertex(maxX, maxY);
+            bottomLeft = new GISVertex(minX, minY);
+        }
         public void ChangeExtent(GISMapActions action)
         {
             double 
@@ -79,6 +93,7 @@ namespace MyGIS
             minY = bottomLeft.y,
             maxX = topRight.x,
             maxY = topRight.y;
+
             switch (action)
             {
                 case GISMapActions.ZoomIn:
@@ -110,23 +125,11 @@ namespace MyGIS
                     maxX = GetMaxX() - GetWidth() * movingFactor;
                     break;
             }
+
             topRight.x = maxX;
             topRight.y = maxY;
             bottomLeft.x = minX;
             bottomLeft.y = minY;
-        }
-        public GISVertex bottomLeft;
-        public GISVertex topRight;
-        public GISExtent(GISVertex bottomLeft, GISVertex topRight)
-        {
-            this.bottomLeft = bottomLeft;
-            this.topRight = topRight;
-        }
-        public GISExtent(double minX, double minY, double maxX, double maxY)
-        {
-            //地图的显示范围
-            topRight = new GISVertex(Math.Max(minX, maxX), Math.Max(maxY, minY));
-            bottomLeft = new GISVertex(Math.Min(minX, maxX), Math.Min(minY, maxY));
         }
         public double GetMinX()
         {
@@ -155,6 +158,7 @@ namespace MyGIS
     }
     class GISView
     {
+        //显示地图
         GISExtent currentMapExtent;
         Rectangle mapWindowSize;
         double mapMinX, mapMinY;
@@ -178,7 +182,7 @@ namespace MyGIS
             scaleX = mapWidth / windowWidth;
             scaleY = mapHeight / windowHeight;
         }
-        public Point ToscreenPoint(GISVertex vertex)
+        public Point ToScreenPoint(GISVertex vertex)
         {
             double ScreenX = (vertex.x - mapMinX) / scaleX;
             double ScreenY = windowHeight - (vertex.y - mapMinY) / scaleY;
@@ -211,7 +215,7 @@ namespace MyGIS
         }
         public override void Draw(Graphics graphics, GISView view)
         {
-            Point screenPoint = view.ToscreenPoint(centroid);
+            Point screenPoint = view.ToScreenPoint(centroid);
             graphics.FillEllipse(new SolidBrush(Color.Red),
                 new Rectangle((int)(centroid.x) - 3, (int)(centroid.y) - 3, 6, 6));
 
@@ -223,7 +227,7 @@ namespace MyGIS
     }
     class GISLine : GISSpatial
     {
-        List<GISVertex> AllVertexs;
+        List<GISVertex> vertices;
         public override void Draw(Graphics graphics, GISView view)
         {
 
@@ -231,7 +235,7 @@ namespace MyGIS
     }
     class GISPolygon : GISSpatial
     {
-        List<GISVertex> AllVertexs;
+        List<GISVertex> vertices;
         public override void Draw(Graphics graphics, GISView view)
         {
 
