@@ -241,7 +241,7 @@ namespace MyGIS
     }
     class GISLine : GISSpatial
     {
-        List<GISVertex> AllVertexs;
+        List<GISVertex> vertices;
         public override void Draw(Graphics graphics, GISView view)
         {
 
@@ -249,7 +249,7 @@ namespace MyGIS
     }
     class GISPolygon : GISSpatial
     {
-        List<GISVertex> AllVertexs;
+        List<GISVertex> vertices;
         public override void Draw(Graphics graphics, GISView view)
         {
 
