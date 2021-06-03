@@ -298,8 +298,8 @@ namespace MyGIS
 
             while (binaryReader.PeekChar() != -1)
             {
-                RecordHeader rh = ReadRecordHeader(binaryReader);
-                int recordLength = FromBigToLittle(rh.recordLength) * 2 - 4;
+                RecordHeader recordHeader = ReadRecordHeader(binaryReader);
+                int recordLength = FromBigToLittle(recordHeader.recordLength) * 2 - 4;
                 byte[] recordContents = binaryReader.ReadBytes(recordLength);
                 if (shapeType == ShapeType.Point)
                 {
@@ -390,5 +390,62 @@ namespace MyGIS
         {
             return features.Count;
         }
+    }
+
+    class GISTools
+    {
+        public static GISVertex CalculateCentroid(List<GISVertex> vertices)
+        {
+            if (vertices.Count == 0)
+            {
+                return null;
+            }
+            double x = 0;
+            double y = 0;
+            for (int i = 0; i < vertices.Count; i++)
+            {
+                x += vertices[i].x;
+                y += vertices[i].y;
+            }
+
+            return new GISVertex(x / vertices.Count, y / vertices.Count);
+        }
+
+        public static GISExtent CalculateExtent(List<GISVertex> vertices)
+        {
+            if (vertices.Count == 0)
+            {
+                return null;
+            }
+
+            double minX = double.MaxValue;
+            double minY = double.MaxValue;
+            double maxX = double.MinValue;
+            double maxY = double.MinValue;
+
+            for (int i = 0; i < vertices.Count; i++)
+            {
+                if (vertices[i].x < minX)
+                {
+                    minX = vertices[i].x;
+                }
+                if (vertices[i].y < minY)
+                {
+                    minY = vertices[i].y;
+                }
+                if (vertices[i].x > maxX)
+                {
+                    maxX = vertices[i].x;
+                }
+                if (vertices[i].y > maxY)
+                {
+                    maxY = vertices[i].y;
+                }
+
+                return new GISExtent(minX, minY, maxX, maxY);
+            }
+        }
+
+
     }
 }
