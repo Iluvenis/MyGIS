@@ -298,8 +298,8 @@ namespace MyGIS
 
             while (binaryReader.PeekChar() != -1)
             {
-                RecordHeader rh = ReadRecordHeader(binaryReader);
-                int recordLength = FromBigToLittle(rh.recordLength) * 2 - 4;
+                RecordHeader recordHeader = ReadRecordHeader(binaryReader);
+                int recordLength = FromBigToLittle(recordHeader.recordLength) * 2 - 4;
                 byte[] recordContents = binaryReader.ReadBytes(recordLength);
                 if (shapeType == ShapeType.Point)
                 {
