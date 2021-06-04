@@ -2,6 +2,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
+using System.Runtime.InteropServices;
 
 namespace MyGIS
 {
@@ -18,7 +20,11 @@ namespace MyGIS
         {
             return Math.Sqrt((x - vertex.x) * (x - vertex.x) + (y - vertex.y) * (y - vertex.y));
         }
-
+        public void CopyFrom(GISVertex vertex)
+        {
+            x = vertex.x;
+            y = vertex.y;
+        }
     }
     class GISFeature
     {
@@ -88,7 +94,7 @@ namespace MyGIS
         }
         public void ChangeExtent(GISMapActions action)
         {
-            double 
+            double
             minX = bottomLeft.x,
             minY = bottomLeft.y,
             maxX = topRight.x,
@@ -155,6 +161,12 @@ namespace MyGIS
         {
             return topRight.y - bottomLeft.y;
         }
+
+        public void CopyFrom(GISExtent extent)
+        {
+            topRight.CopyFrom(extent.topRight);
+            bottomLeft.CopyFrom(extent.bottomLeft);
+        }
     }
     class GISView
     {
@@ -200,6 +212,12 @@ namespace MyGIS
             currentMapExtent.ChangeExtent(action);
             Update(currentMapExtent, mapWindowSize);
         }
+
+        public void UpdateExtent(GISExtent extent)
+        {
+            currentMapExtent.CopyFrom(extent);
+            Update(currentMapExtent, mapWindowSize);
+        }
     }
     enum GISMapActions
     {
@@ -240,6 +258,141 @@ namespace MyGIS
         {
 
         }
+    }
+    class GISShapefile
+    {
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        public struct ShapefileHeader
+        {
+            public int unused1, unused2, unused3, unused4;
+            public int unused5, unused6, unused7, unused8;
+            public int shapeType;
+            public double minX;
+            public double minY;
+            public double maxX;
+            public double maxY;
+            public double unused9, unused10, unused11, unused12;
+        }
 
+        ShapefileHeader ReadFileHeader(BinaryReader binaryReader)
+        {
+            byte[] buff = binaryReader.ReadBytes(Marshal.SizeOf(typeof(ShapefileHeader)));
+            GCHandle handle = GCHandle.Alloc(buff, GCHandleType.Pinned);
+            ShapefileHeader header = (ShapefileHeader)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(ShapefileHeader));
+            handle.Free();
+
+            return header;
+        }
+
+        GISPoint ReadPoint(byte[] recordContents)
+        {
+            double x = BitConverter.ToDouble(recordContents, 0);
+            double y = BitConverter.ToDouble(recordContents, 8);
+            return new GISPoint(new GISVertex(x, y));
+        }
+
+        public GISLayer ReadShapefile(string shapefileName)
+        {
+            FileStream fileStream = new FileStream(shapefileName, FileMode.Open);
+            BinaryReader binaryReader = new BinaryReader(fileStream);
+            ShapefileHeader shapefileHeader = ReadFileHeader(binaryReader);
+            ShapeType shapeType = (ShapeType)Enum.Parse(typeof(ShapeType), shapefileHeader.ToString());
+            GISExtent extent = new GISExtent(shapefileHeader.minX, shapefileHeader.minY, shapefileHeader.maxX, shapefileHeader.maxY);
+            GISLayer layer = new GISLayer(shapefileName, shapeType, extent);
+
+            while (binaryReader.PeekChar() != -1)
+            {
+                RecordHeader recordHeader = ReadRecordHeader(binaryReader);
+                int recordLength = FromBigToLittle(recordHeader.recordLength) * 2 - 4;
+                byte[] recordContents = binaryReader.ReadBytes(recordLength);
+                if (shapeType == ShapeType.Point)
+                {
+                    GISPoint point = ReadPoint(recordContents);
+                    GISFeature feature = new GISFeature(point, new GISAttribute());
+                    layer.AddFeature(feature);
+                }
+            }
+
+            binaryReader.Close();
+            fileStream.Close();
+            return layer;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        struct RecordHeader
+        {
+            public int recordNumber;
+            public int recordLength;
+            public int shapeType;
+        }
+
+        RecordHeader ReadRecordHeader(BinaryReader binaryReader)
+        {
+            byte[] buff = binaryReader.ReadBytes(Marshal.SizeOf(typeof(RecordHeader)));
+            GCHandle handle = GCHandle.Alloc(buff, GCHandleType.Pinned);
+            RecordHeader header = (RecordHeader)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(ShapefileHeader));
+            handle.Free();
+
+            return header;
+        }
+
+        int FromBigToLittle(int value)
+        {
+            byte[] bytes = new byte[4];
+
+            GCHandle handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+            Marshal.StructureToPtr(value, handle.AddrOfPinnedObject(), false);
+            handle.Free();
+            byte tmp1 = bytes[2];
+            byte tmp2 = bytes[3];
+            bytes[3] = bytes[0];
+            bytes[2] = bytes[1];
+            bytes[1] = tmp1;
+            bytes[0] = tmp2;
+
+            return BitConverter.ToInt32(bytes, 0);
+        }
+    }
+
+    enum ShapeType
+    {
+        Point = 1,
+        Line = 3,
+        Polygon = 5
+    }
+
+    class GISLayer
+    {
+        public string name;
+        public GISExtent extent;
+        public bool shouldDrawAttribute;
+        public int labelIndex;
+        public ShapeType shapeType;
+        List<GISFeature> features = new List<GISFeature>();
+
+        public GISLayer(string name, ShapeType shapeType, GISExtent extent)
+        {
+            this.name = name;
+            this.shapeType = shapeType;
+            this.extent = extent;
+        }
+
+        public void Draw(Graphics graphics, GISView view)
+        {
+            for (int i = 0; i < features.Count; i++)
+            {
+                features[i].Draw(graphics, view, shouldDrawAttribute, labelIndex);
+            }
+        }
+
+        public void AddFeature(GISFeature feature)
+        {
+            features.Add(feature);
+        }
+
+        public int FeatureCount()
+        {
+            return features.Count;
+        }
     }
 }
