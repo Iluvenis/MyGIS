@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
+using System.Data.OleDb;
 using System.Drawing;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -324,7 +326,10 @@ namespace MyGIS
             ShapefileHeader shapefileHeader = ReadFileHeader(binaryReader);
             ShapeType shapeType = (ShapeType)Enum.Parse(typeof(ShapeType), shapefileHeader.ToString());
             GISExtent extent = new GISExtent(shapefileHeader.minX, shapefileHeader.minY, shapefileHeader.maxX, shapefileHeader.maxY);
-            GISLayer layer = new GISLayer(shapefileName, shapeType, extent);
+            string dbfFileName = shapefileName.Replace(".shp", ".dbf");
+            DataTable table = ReadDBF(dbfFileName);
+            GISLayer layer = new GISLayer(shapefileName, shapeType, extent, ReadFields(table));
+            int rowIndex = 0;
 
             while (binaryReader.PeekChar() != -1)
             {
@@ -357,6 +362,7 @@ namespace MyGIS
                     }
 
                 }
+                rowIndex++;
             }
 
             binaryReader.Close();
@@ -457,6 +463,49 @@ namespace MyGIS
 
             return polygons;
         }
+
+        static DataTable ReadDBF(string dbfFileName)
+        {
+            System.IO.FileInfo fileInfo = new FileInfo(dbfFileName);
+            DataSet dataSet = null;
+            string conectionString = "Provider=Microsoft.Jet.OLEDB.4.0;Data Sourse=" + fileInfo.DirectoryName + ";Extended Properties=DBASE III";
+            using (OleDbConnection connection = new OleDbConnection(conectionString))
+            {
+                var sql = "select * from " + fileInfo.Name;
+                OleDbCommand command = new OleDbCommand(sql, connection);
+                connection.Open();
+                dataSet = new DataSet();
+                OleDbDataAdapter dataAdapter = new OleDbDataAdapter(command);
+                dataAdapter.Fill(dataSet);
+            }
+
+            return dataSet.Tables[0];
+        }
+
+        static List<GISField> ReadFields(DataTable table)
+        {
+            List<GISField> fields = new List<GISField>();
+            foreach (DataColumn column in table.Columns)
+            {
+                fields.Add(new GISField(column.DataType, column.ColumnName));
+            }
+
+            return fields;
+        }
+
+        static GISAttribute ReadAttribute(DataTable table, int rowIndex)
+        {
+            GISAttribute attribute = new GISAttribute();
+            DataRow row = table.Rows[rowIndex];
+            for (int i = 0; i < table.Columns.Count; i++)
+            {
+                attribute.AddValue(row[i]);
+            }
+
+            return attribute;
+        }
+
+
     }
 
     enum ShapeType
@@ -474,12 +523,22 @@ namespace MyGIS
         public int labelIndex;
         public ShapeType shapeType;
         List<GISFeature> features = new List<GISFeature>();
+        public List<GISField> fields;
+
+        public GISLayer(string name, ShapeType shapeType, GISExtent extent, List<GISField> fields)
+        {
+            this.name = name;
+            this.shapeType = shapeType;
+            this.extent = extent;
+            this.fields = fields;
+        }
 
         public GISLayer(string name, ShapeType shapeType, GISExtent extent)
         {
             this.name = name;
             this.shapeType = shapeType;
             this.extent = extent;
+            fields = new List<GISField>();
         }
 
         public void Draw(Graphics graphics, GISView view)
@@ -498,6 +557,11 @@ namespace MyGIS
         public int FeatureCount()
         {
             return features.Count;
+        }
+
+        public GISFeature GetFeature(int i)
+        {
+            return features[i];
         }
     }
 
@@ -592,6 +656,17 @@ namespace MyGIS
             }
 
             return points;
+        }
+    }
+
+    class GISField
+    {
+        public Type dataType;
+        public string name;
+        public GISField(Type dataType, string name)
+        {
+            this.dataType = dataType;
+            this.name = name;
         }
     }
 }
