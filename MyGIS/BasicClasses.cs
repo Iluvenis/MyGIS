@@ -15,24 +15,24 @@ namespace MyGIS
         Line = 3,
         Polygon = 5
     }
-    enum GISMapActions
+    enum MapActions
     {
         ZoomIn, ZoomOut,
         MoveUp, MoveDown, MoveLeft, MoveRight
     };
 
-    class GISFeature
+    class Feature
     {
-        public GISSpatial spatial;
-        public GISAttribute attribute;
+        public Spatial spatial;
+        public Attribute attribute;
 
-        public GISFeature(GISSpatial spatial, GISAttribute attribute)
+        public Feature(Spatial spatial, Attribute attribute)
         {
             this.spatial = spatial;
             this.attribute = attribute;
         }
 
-        public void Draw(Graphics graphics, GISView view, bool shouldDrawAttribute, int index)
+        public void Draw(Graphics graphics, View view, bool shouldDrawAttribute, int index)
         {
             spatial.Draw(graphics, view);
             if (shouldDrawAttribute)
@@ -44,14 +44,14 @@ namespace MyGIS
             return this.attribute.GetValue(index);
         }
     }
-    abstract class GISSpatial
+    abstract class Spatial
     {
-        public GISVertex centroid;
-        public GISExtent extent;
+        public Vertex centroid;
+        public Extent extent;
 
-        public abstract void Draw(Graphics graphics, GISView view);
+        public abstract void Draw(Graphics graphics, View view);
     }
-    class GISAttribute
+    class Attribute
     {
         ArrayList attributes = new ArrayList();
 
@@ -63,9 +63,9 @@ namespace MyGIS
         {
             return attributes[index];
         }
-        public void Draw(Graphics graphics, GISView view, GISVertex location, int index)
+        public void Draw(Graphics graphics, View view, Vertex location, int index)
         {
-            Point screenPoint = new Point((int)location.x, (int)location.y);
+            System.Drawing.Point screenPoint = new System.Drawing.Point((int)location.x, (int)location.y);
             graphics.DrawString(attributes[index].ToString(),
                 new Font("宋体", 20),
                 new SolidBrush(Color.Green),
@@ -73,120 +73,120 @@ namespace MyGIS
         }
     }
 
-    class GISVertex
+    class Vertex
     {
         public double x;
         public double y;
 
-        public GISVertex(double x, double y)
+        public Vertex(double x, double y)
         {
             this.x = x;
             this.y = y;
         }
 
-        public double Distance(GISVertex vertex)
+        public double Distance(Vertex vertex)
         {
             return Math.Sqrt((x - vertex.x) * (x - vertex.x) + (y - vertex.y) * (y - vertex.y));
         }
 
-        public void CopyFrom(GISVertex vertex)
+        public void CopyFrom(Vertex vertex)
         {
             x = vertex.x;
             y = vertex.y;
         }
     }
-    class GISPoint : GISSpatial
+    class Point : Spatial
     {
-        public GISPoint(GISVertex vertex)
+        public Point(Vertex vertex)
         {
             centroid = vertex;
-            extent = new GISExtent(vertex, vertex);
+            extent = new Extent(vertex, vertex);
         }
 
-        public override void Draw(Graphics graphics, GISView view)
+        public override void Draw(Graphics graphics, View view)
         {
-            Point screenPoint = view.ToScreenPoint(centroid);
+            System.Drawing.Point screenPoint = view.ToScreenPoint(centroid);
             graphics.FillEllipse(new SolidBrush(Color.Red), new Rectangle((int)(centroid.x) - 3, (int)(centroid.y) - 3, 6, 6));
 
         }
 
-        public double Distance(GISVertex vertex)
+        public double Distance(Vertex vertex)
         {
             return centroid.Distance(vertex);
         }
     }
-    class GISLine : GISSpatial
+    class Line : Spatial
     {
-        List<GISVertex> vertices;
+        List<Vertex> vertices;
         public double length;
 
-        public GISLine(List<GISVertex> vertices)
+        public Line(List<Vertex> vertices)
         {
             this.vertices = vertices;
-            centroid = GISTools.CalculateCentroid(vertices);
-            extent = GISTools.CalculateExtent(vertices);
-            length = GISTools.CalculateLength(vertices);
+            centroid = Tools.CalculateCentroid(vertices);
+            extent = Tools.CalculateExtent(vertices);
+            length = Tools.CalculateLength(vertices);
         }
 
-        public override void Draw(Graphics graphics, GISView view)
+        public override void Draw(Graphics graphics, View view)
         {
-            Point[] points = GISTools.GetScreenPoints(vertices, view);
+            System.Drawing.Point[] points = Tools.GetScreenPoints(vertices, view);
             graphics.DrawLines(new Pen(Color.Red, 2), points);
         }
 
-        public GISVertex GetFromNode()
+        public Vertex GetFromNode()
         {
             return vertices[0];
         }
 
-        public GISVertex GetToNode()
+        public Vertex GetToNode()
         {
             return vertices[vertices.Count - 1];
         }
     }
-    class GISPolygon : GISSpatial
+    class Polygon : Spatial
     {
-        List<GISVertex> vertices;
+        List<Vertex> vertices;
         public double area;
 
-        public GISPolygon(List<GISVertex> vertices)
+        public Polygon(List<Vertex> vertices)
         {
             this.vertices = vertices;
-            centroid = GISTools.CalculateCentroid(vertices);
-            extent = GISTools.CalculateExtent(vertices);
-            area = GISTools.CalculateArea(vertices);
+            centroid = Tools.CalculateCentroid(vertices);
+            extent = Tools.CalculateExtent(vertices);
+            area = Tools.CalculateArea(vertices);
         }
 
-        public override void Draw(Graphics graphics, GISView view)
+        public override void Draw(Graphics graphics, View view)
         {
-            Point[] points = GISTools.GetScreenPoints(vertices, view);
+            System.Drawing.Point[] points = Tools.GetScreenPoints(vertices, view);
             graphics.FillPolygon(new SolidBrush(Color.Yellow), points);
             graphics.DrawPolygon(new Pen(Color.White, 2), points);
         }
     }
 
-    class GISField
+    class Field
     {
         public Type dataType;
         public string name;
 
-        public GISField(Type dataType, string name)
+        public Field(Type dataType, string name)
         {
             this.dataType = dataType;
             this.name = name;
         }
     }
 
-    class GISExtent
+    class Extent
     {
         double zoomingFactor = 2;
         double movingFactor = 0.25;
 
         
-        public GISVertex bottomLeft;
-        public GISVertex topRight;
+        public Vertex bottomLeft;
+        public Vertex topRight;
 
-        public void ChangeExtent(GISMapActions action)
+        public void ChangeExtent(MapActions action)
         {
             double
             minX = bottomLeft.x,
@@ -195,31 +195,31 @@ namespace MyGIS
             maxY = topRight.y;
             switch (action)
             {
-                case GISMapActions.ZoomIn:
+                case MapActions.ZoomIn:
                     minX = (GetMinX() + GetMaxX() - GetWidth() / zoomingFactor) / 2;
                     minY = (GetMinY() + GetMaxY() - GetHeight() / zoomingFactor) / 2;
                     maxX = (GetMinX() + GetMaxX() + GetWidth() / zoomingFactor) / 2;
                     maxY = (GetMinY() + GetMaxY() + GetHeight() / zoomingFactor) / 2;
                     break;
-                case GISMapActions.ZoomOut:
+                case MapActions.ZoomOut:
                     minX = (GetMinX() + GetMaxX() - GetWidth() * zoomingFactor) / 2;
                     minY = (GetMinY() + GetMaxY() - GetHeight() * zoomingFactor) / 2;
                     maxX = (GetMinX() + GetMaxX() + GetWidth() * zoomingFactor) / 2;
                     maxY = (GetMinY() + GetMaxY() + GetHeight() * zoomingFactor) / 2;
                     break;
-                case GISMapActions.MoveUp:
+                case MapActions.MoveUp:
                     minY = GetMinY() - GetHeight() * movingFactor;
                     maxY = GetMaxY() - GetHeight() * movingFactor;
                     break;
-                case GISMapActions.MoveDown:
+                case MapActions.MoveDown:
                     minY = GetMinY() + GetHeight() * movingFactor;
                     maxY = GetMaxY() + GetHeight() * movingFactor;
                     break;
-                case GISMapActions.MoveLeft:
+                case MapActions.MoveLeft:
                     minX = GetMinX() + GetWidth() * movingFactor;
                     maxX = GetMaxX() + GetWidth() * movingFactor;
                     break;
-                case GISMapActions.MoveRight:
+                case MapActions.MoveRight:
                     minX = GetMinX() - GetWidth() * movingFactor;
                     maxX = GetMaxX() - GetWidth() * movingFactor;
                     break;
@@ -229,16 +229,16 @@ namespace MyGIS
             bottomLeft.x = minX;
             bottomLeft.y = minY;
         }
-        public GISExtent(GISVertex bottomLeft, GISVertex topRight)
+        public Extent(Vertex bottomLeft, Vertex topRight)
         {
             this.bottomLeft = bottomLeft;
             this.topRight = topRight;
         }
-        public GISExtent(double minX, double minY, double maxX, double maxY)
+        public Extent(double minX, double minY, double maxX, double maxY)
         {
             //地图的显示范围
-            topRight = new GISVertex(Math.Max(minX, maxX), Math.Max(maxY, minY));
-            bottomLeft = new GISVertex(Math.Min(minX, maxX), Math.Min(minY, maxY));
+            topRight = new Vertex(Math.Max(minX, maxX), Math.Max(maxY, minY));
+            bottomLeft = new Vertex(Math.Min(minX, maxX), Math.Min(minY, maxY));
         }
         public double GetMinX()
         {
@@ -265,26 +265,26 @@ namespace MyGIS
             return topRight.y - bottomLeft.y;
         }
 
-        public void CopyFrom(GISExtent extent)
+        public void CopyFrom(Extent extent)
         {
             topRight.CopyFrom(extent.topRight);
             bottomLeft.CopyFrom(extent.bottomLeft);
         }
     }
-    class GISView
+    class View
     {
-        GISExtent currentMapExtent;
+        Extent currentMapExtent;
         Rectangle mapWindowSize;
         double mapMinX, mapMinY;
         int windowWidth, windowHeight;
         double mapWidth, mapHeight;
         double scaleX, scaleY;
 
-        public GISView(GISExtent extent, Rectangle rectangle)
+        public View(Extent extent, Rectangle rectangle)
         {
             Update(extent, rectangle);
         }
-        public void Update(GISExtent extent, Rectangle rectangle)
+        public void Update(Extent extent, Rectangle rectangle)
         {
             currentMapExtent = extent;
             mapWindowSize = rectangle;
@@ -297,63 +297,63 @@ namespace MyGIS
             scaleX = mapWidth / windowWidth;
             scaleY = mapHeight / windowHeight;
         }
-        public Point ToScreenPoint(GISVertex vertex)
+        public System.Drawing.Point ToScreenPoint(Vertex vertex)
         {
             double ScreenX = (vertex.x - mapMinX) / scaleX;
             double ScreenY = windowHeight - (vertex.y - mapMinY) / scaleY;
-            return new Point((int)ScreenX, (int)ScreenY);
+            return new System.Drawing.Point((int)ScreenX, (int)ScreenY);
 
         }
-        public GISVertex ToMapVertex(Point point)
+        public Vertex ToMapVertex(System.Drawing.Point point)
         {
             double mapX = scaleX * point.X + mapMinX;
             double mapY = scaleY * (windowHeight - point.Y) + mapMinY;
-            return new GISVertex(mapX, mapY);
+            return new Vertex(mapX, mapY);
         }
-        public void ChangeView(GISMapActions action)
+        public void ChangeView(MapActions action)
         {
             currentMapExtent.ChangeExtent(action);
             Update(currentMapExtent, mapWindowSize);
         }
-        public void UpdateExtent(GISExtent extent)
+        public void UpdateExtent(Extent extent)
         {
             currentMapExtent.CopyFrom(extent);
             Update(currentMapExtent, mapWindowSize);
         }
     }
-    class GISLayer
+    class Layer
     {
         public string name;
-        public GISExtent extent;
+        public Extent extent;
         public bool shouldDrawAttribute;
         public int labelIndex;
         public ShapeType shapeType;
-        List<GISFeature> features = new List<GISFeature>();
-        public List<GISField> fields;
+        List<Feature> features = new List<Feature>();
+        public List<Field> fields;
 
-        public GISLayer(string name, ShapeType shapeType, GISExtent extent, List<GISField> fields)
+        public Layer(string name, ShapeType shapeType, Extent extent, List<Field> fields)
         {
             this.name = name;
             this.shapeType = shapeType;
             this.extent = extent;
             this.fields = fields;
         }
-        public GISLayer(string name, ShapeType shapeType, GISExtent extent)
+        public Layer(string name, ShapeType shapeType, Extent extent)
         {
             this.name = name;
             this.shapeType = shapeType;
             this.extent = extent;
-            fields = new List<GISField>();
+            fields = new List<Field>();
         }
 
-        public void Draw(Graphics graphics, GISView view)
+        public void Draw(Graphics graphics, View view)
         {
             for (int i = 0; i < features.Count; i++)
             {
                 features[i].Draw(graphics, view, shouldDrawAttribute, labelIndex);
             }
         }
-        public void AddFeature(GISFeature feature)
+        public void AddFeature(Feature feature)
         {
             features.Add(feature);
         }
@@ -361,13 +361,13 @@ namespace MyGIS
         {
             return features.Count;
         }
-        public GISFeature GetFeature(int i)
+        public Feature GetFeature(int i)
         {
             return features[i];
         }
     }
 
-    class GISShapefile
+    class Shapefile
     {
         [StructLayout(LayoutKind.Sequential, Pack = 4)]
         public struct ShapefileHeader
@@ -391,22 +391,22 @@ namespace MyGIS
 
             return header;
         }
-        GISPoint ReadPoint(byte[] recordContents)
+        Point ReadPoint(byte[] recordContents)
         {
             double x = BitConverter.ToDouble(recordContents, 0);
             double y = BitConverter.ToDouble(recordContents, 8);
-            return new GISPoint(new GISVertex(x, y));
+            return new Point(new Vertex(x, y));
         }
-        public GISLayer ReadShapefile(string shapefileName)
+        public Layer ReadShapefile(string shapefileName)
         {
             FileStream fileStream = new FileStream(shapefileName, FileMode.Open);
             BinaryReader binaryReader = new BinaryReader(fileStream);
             ShapefileHeader shapefileHeader = ReadFileHeader(binaryReader);
             ShapeType shapeType = (ShapeType)Enum.Parse(typeof(ShapeType), shapefileHeader.ToString());
-            GISExtent extent = new GISExtent(shapefileHeader.minX, shapefileHeader.minY, shapefileHeader.maxX, shapefileHeader.maxY);
+            Extent extent = new Extent(shapefileHeader.minX, shapefileHeader.minY, shapefileHeader.maxX, shapefileHeader.maxY);
             string dbfFileName = shapefileName.Replace(".shp", ".dbf");
             DataTable table = ReadDBF(dbfFileName);
-            GISLayer layer = new GISLayer(shapefileName, shapeType, extent, ReadFields(table));
+            Layer layer = new Layer(shapefileName, shapeType, extent, ReadFields(table));
             int rowIndex = 0;
 
             while (binaryReader.PeekChar() != -1)
@@ -416,26 +416,26 @@ namespace MyGIS
                 byte[] recordContents = binaryReader.ReadBytes(recordLength);
                 if (shapeType == ShapeType.Point)
                 {
-                    GISPoint point = ReadPoint(recordContents);
-                    GISFeature feature = new GISFeature(point, new GISAttribute());
+                    Point point = ReadPoint(recordContents);
+                    Feature feature = new Feature(point, new Attribute());
                     layer.AddFeature(feature);
                 }
 
                 if (shapeType == ShapeType.Line)
                 {
-                    List<GISLine> lines = ReadLines(recordContents);
+                    List<Line> lines = ReadLines(recordContents);
                     for (int i = 0; i < lines.Count; i++)
                     {
-                        GISFeature feature = new GISFeature(lines[i], new GISAttribute());
+                        Feature feature = new Feature(lines[i], new Attribute());
                         layer.AddFeature(feature);
                     }
                 }
                 if (shapeType == ShapeType.Polygon)
                 {
-                    List<GISPolygon> polygons = ReadPolygons(recordContents);
+                    List<Polygon> polygons = ReadPolygons(recordContents);
                     for (int i = 0; i < polygons.Count; i++)
                     {
-                        GISFeature feature = new GISFeature(polygons[i], new GISAttribute());
+                        Feature feature = new Feature(polygons[i], new Attribute());
                         layer.AddFeature(feature);
                     }
 
@@ -481,7 +481,7 @@ namespace MyGIS
 
             return BitConverter.ToInt32(bytes, 0);
         }
-        List<GISLine> ReadLines(byte[] recordContent)
+        List<Line> ReadLines(byte[] recordContent)
         {
             int n = BitConverter.ToInt32(recordContent, 32);
             int m = BitConverter.ToInt32(recordContent, 36);
@@ -494,22 +494,22 @@ namespace MyGIS
 
             parts[n] = m;
 
-            List<GISLine> lines = new List<GISLine>();
+            List<Line> lines = new List<Line>();
             for (int i = 0; i < n; i++)
             {
-                List<GISVertex> vertices = new List<GISVertex>();
+                List<Vertex> vertices = new List<Vertex>();
                 for (int j = parts[i]; j < parts[i + 1]; j++)
                 {
                     double x = BitConverter.ToDouble(recordContent, 40 + n * 4 + j * 16);
                     double y = BitConverter.ToDouble(recordContent, 40 + n * 4 + j * 16 + 8);
-                    vertices.Add(new GISVertex(x, y));
+                    vertices.Add(new Vertex(x, y));
                 }
-                lines.Add(new GISLine(vertices));
+                lines.Add(new Line(vertices));
             }
 
             return lines;
         }
-        List<GISPolygon> ReadPolygons(byte[] recordContent)
+        List<Polygon> ReadPolygons(byte[] recordContent)
         {
             int n = BitConverter.ToInt32(recordContent, 32);
             int m = BitConverter.ToInt32(recordContent, 36);
@@ -522,18 +522,18 @@ namespace MyGIS
 
             parts[n] = m;
 
-            List<GISPolygon> polygons = new List<GISPolygon>();
+            List<Polygon> polygons = new List<Polygon>();
 
             for (int i = 0; i < n; i++)
             {
-                List<GISVertex> vertices = new List<GISVertex>();
+                List<Vertex> vertices = new List<Vertex>();
                 for (int j = parts[i]; j < parts[i + 1]; j++)
                 {
                     double x = BitConverter.ToDouble(recordContent, 40 + n * 4 + j * 16);
                     double y = BitConverter.ToDouble(recordContent, 40 + n * 4 + j * 16 + 8);
-                    vertices.Add(new GISVertex(x, y));
+                    vertices.Add(new Vertex(x, y));
                 }
-                polygons.Add(new GISPolygon(vertices));
+                polygons.Add(new Polygon(vertices));
             }
 
             return polygons;
@@ -555,19 +555,19 @@ namespace MyGIS
 
             return dataSet.Tables[0];
         }
-        static List<GISField> ReadFields(DataTable table)
+        static List<Field> ReadFields(DataTable table)
         {
-            List<GISField> fields = new List<GISField>();
+            List<Field> fields = new List<Field>();
             foreach (DataColumn column in table.Columns)
             {
-                fields.Add(new GISField(column.DataType, column.ColumnName));
+                fields.Add(new Field(column.DataType, column.ColumnName));
             }
 
             return fields;
         }
-        static GISAttribute ReadAttribute(DataTable table, int rowIndex)
+        static Attribute ReadAttribute(DataTable table, int rowIndex)
         {
-            GISAttribute attribute = new GISAttribute();
+            Attribute attribute = new Attribute();
             DataRow row = table.Rows[rowIndex];
             for (int i = 0; i < table.Columns.Count; i++)
             {
@@ -578,9 +578,9 @@ namespace MyGIS
         }
     }
 
-    class GISTools
+    class Tools
     {
-        public static GISVertex CalculateCentroid(List<GISVertex> vertices)
+        public static Vertex CalculateCentroid(List<Vertex> vertices)
         {
             if (vertices.Count == 0)
             {
@@ -594,9 +594,9 @@ namespace MyGIS
                 y += vertices[i].y;
             }
 
-            return new GISVertex(x / vertices.Count, y / vertices.Count);
+            return new Vertex(x / vertices.Count, y / vertices.Count);
         }
-        public static GISExtent CalculateExtent(List<GISVertex> vertices)
+        public static Extent CalculateExtent(List<Vertex> vertices)
         {
             if (vertices.Count == 0)
             {
@@ -627,10 +627,10 @@ namespace MyGIS
                     maxY = vertices[i].y;
                 }
             }
-            return new GISExtent(minX, minY, maxX, maxY);
+            return new Extent(minX, minY, maxX, maxY);
 
         }
-        public static double CalculateLength(List<GISVertex> vertices)
+        public static double CalculateLength(List<Vertex> vertices)
         {
             double length = 0;
             for (int i = 0; i < vertices.Count - 1; i++)
@@ -640,7 +640,7 @@ namespace MyGIS
 
             return length;
         }
-        public static double CalculateArea(List<GISVertex> vertices)
+        public static double CalculateArea(List<Vertex> vertices)
         {
             double area = 0;
             for (int i = 0; i < vertices.Count - 1; i++)
@@ -651,13 +651,13 @@ namespace MyGIS
 
             return area / 2;
         }
-        public static double VectorProduct(GISVertex vertex1, GISVertex vertex2)
+        public static double VectorProduct(Vertex vertex1, Vertex vertex2)
         {
             return vertex1.x * vertex2.y - vertex1.y * vertex2.x;
         }
-        public static Point[] GetScreenPoints(List<GISVertex> vertices, GISView view)
+        public static System.Drawing.Point[] GetScreenPoints(List<Vertex> vertices, View view)
         {
-            Point[] points = new Point[vertices.Count];
+            System.Drawing.Point[] points = new System.Drawing.Point[vertices.Count];
             for (int i = 0; i < points.Length; i++)
             {
                 points[i] = view.ToScreenPoint(vertices[i]);
