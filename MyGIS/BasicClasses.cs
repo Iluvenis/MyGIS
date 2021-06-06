@@ -106,7 +106,7 @@ namespace MyGIS
         public override void Draw(Graphics graphics, View view)
         {
             System.Drawing.Point screenPoint = view.ToScreenPoint(centroid);
-            graphics.FillEllipse(new SolidBrush(Color.Red), new Rectangle((int)(centroid.x) - 3, (int)(centroid.y) - 3, 6, 6));
+            graphics.FillEllipse(new SolidBrush(Color.Red), new Rectangle((int)(screenPoint.X) - 3, (int)(screenPoint.Y) - 3, 6, 6));
 
         }
 
@@ -182,7 +182,7 @@ namespace MyGIS
         double zoomingFactor = 2;
         double movingFactor = 0.25;
 
-        
+
         public Vertex bottomLeft;
         public Vertex topRight;
 
