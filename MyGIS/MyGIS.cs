@@ -56,7 +56,7 @@ namespace MyGIS
             }
             if (id == -1)
             {
-                MessageBox.Show("没有任何空间对象！");
+                MessageBox.Show("没有实体！");
 
                 return;
             }
@@ -64,11 +64,11 @@ namespace MyGIS
             double screendistance = Math.Abs(view.ToScreenPoint(nearestVertex).X - e.X) + Math.Abs(view.ToScreenPoint(nearestVertex).Y - e.Y);
             if (screendistance > 5)
             {
-                MessageBox.Show($"请靠近空间对象点击！show n.x{nearestVertex.x},n.y{nearestVertex.y}, e.x{e.X},e.y{e.Y}");
+                MessageBox.Show("请靠实体点击！");
 
                 return;
             }
-            MessageBox.Show($"show n.x{nearestVertex.x},n.y{nearestVertex.y}, e.x{e.X},e.y{e.Y},{ClientRectangle} 该空间对象属性是" + features[id].GetAttribute(0));
+            MessageBox.Show("该实体属性为：" + features[id].GetAttribute(0));
         }
 
         private void ButtonMapAction_Click(object sender, EventArgs e)
