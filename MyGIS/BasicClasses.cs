@@ -65,7 +65,7 @@ namespace MyGIS
         }
         public void Draw(Graphics graphics, View view, Vertex location, int index)
         {
-            System.Drawing.Point screenPoint = new System.Drawing.Point((int)location.x, (int)location.y);
+            System.Drawing.Point screenPoint = view.ToScreenPoint(location);
             graphics.DrawString(attributes[index].ToString(),
                 new Font("宋体", 20),
                 new SolidBrush(Color.Green),
