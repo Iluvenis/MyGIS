@@ -283,9 +283,13 @@ namespace MyGIS
 
         #endregion
 
-        private System.Windows.Forms.Button buttonAddPointEntity;
         private System.Windows.Forms.TextBox textBoxX;
         private System.Windows.Forms.TextBox textBoxY;
+        private System.Windows.Forms.TextBox textBoxAttribute;
+        private System.Windows.Forms.TextBox textBoxMinX;
+        private System.Windows.Forms.TextBox textBoxMinY;
+        private System.Windows.Forms.TextBox textBoxMaxX;
+        private System.Windows.Forms.TextBox textBoxMaxY;
         private System.Windows.Forms.Label labelX;
         private System.Windows.Forms.Label labelY;
         private System.Windows.Forms.Label labelAttribute;
@@ -293,10 +297,7 @@ namespace MyGIS
         private System.Windows.Forms.Label labelMinY;
         private System.Windows.Forms.Label labelMaxX;
         private System.Windows.Forms.Label labelMaxY;
-        private System.Windows.Forms.TextBox textBoxMinX;
-        private System.Windows.Forms.TextBox textBoxMinY;
-        private System.Windows.Forms.TextBox textBoxMaxX;
-        private System.Windows.Forms.TextBox textBoxMaxY;
+        private System.Windows.Forms.Button buttonAddPointEntity;
         private System.Windows.Forms.Button buttonUpdateMap;
         private System.Windows.Forms.Button buttonZoomIn;
         private System.Windows.Forms.Button buttonZoomOut;
@@ -304,7 +305,6 @@ namespace MyGIS
         private System.Windows.Forms.Button buttonMoveDown;
         private System.Windows.Forms.Button buttonMoveLeft;
         private System.Windows.Forms.Button buttonMoveRight;
-        private System.Windows.Forms.TextBox textBoxAttribute;
     }
 }
 
