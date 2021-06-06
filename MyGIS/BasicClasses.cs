@@ -63,9 +63,9 @@ namespace MyGIS
         {
             return attributes[index];
         }
-        public void Draw(Graphics graphics, View view, Vertex location, int index)
+        public void Draw(Graphics graphics, View view, Vertex centriod, int index)
         {
-            System.Drawing.Point screenPoint = view.ToScreenPoint(location);
+            System.Drawing.Point screenPoint = view.ToScreenPoint(centriod);
             graphics.DrawString(attributes[index].ToString(),
                 new Font("宋体", 20),
                 new SolidBrush(Color.Green),
