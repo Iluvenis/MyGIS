@@ -184,27 +184,12 @@ namespace MyGIS
         public GISVertex topRight;
         double zoomingFactor = 2;
         double movingFactor = 0.25;
-<<<<<<< HEAD
-        
-        public GISExtent(GISVertex bottomLeft, GISVertex topRight)
-        {
-            this.bottomLeft = bottomLeft;
-            this.topRight = topRight;
-        }
-        public GISExtent(double minX, double minY, double maxX, double maxY)
-        {
-            topRight = new GISVertex(maxX, maxY);
-            bottomLeft = new GISVertex(minX, minY);
-        }
-        public void ChangeExtent(GISMapActions action)
-=======
 
 
         public Vertex bottomLeft;
         public Vertex topRight;
 
         public void ChangeExtent(MapActions action)
->>>>>>> ffe9e5368362a07716d042877a1f7e3dd3e403de
         {
             double
             minX = bottomLeft.x,
@@ -249,8 +234,6 @@ namespace MyGIS
             bottomLeft.x = minX;
             bottomLeft.y = minY;
         }
-<<<<<<< HEAD
-=======
         public Extent(Vertex bottomLeft, Vertex topRight)
         {
             this.bottomLeft = bottomLeft;
@@ -262,7 +245,6 @@ namespace MyGIS
             topRight = new Vertex(Math.Max(minX, maxX), Math.Max(maxY, minY));
             bottomLeft = new Vertex(Math.Min(minX, maxX), Math.Min(minY, maxY));
         }
->>>>>>> ffe9e5368362a07716d042877a1f7e3dd3e403de
         public double GetMinX()
         {
             return bottomLeft.x;
@@ -296,12 +278,7 @@ namespace MyGIS
     }
     class View
     {
-<<<<<<< HEAD
-        //显示地图
-        GISExtent currentMapExtent;
-=======
         Extent currentMapExtent;
->>>>>>> ffe9e5368362a07716d042877a1f7e3dd3e403de
         Rectangle mapWindowSize;
         double mapMinX, mapMinY;
         int windowWidth, windowHeight;
@@ -325,19 +302,11 @@ namespace MyGIS
             scaleX = mapWidth / windowWidth;
             scaleY = mapHeight / windowHeight;
         }
-<<<<<<< HEAD
-        public Point ToScreenPoint(GISVertex vertex)
-        {
-            double screenX = (vertex.x - mapMinX) / scaleX;
-            double screenY = windowHeight - (vertex.y - mapMinY) / scaleY;
-            return new Point((int)screenX, (int)screenY);
-=======
         public System.Drawing.Point ToScreenPoint(Vertex vertex)
         {
             double ScreenX = (vertex.x - mapMinX) / scaleX;
             double ScreenY = windowHeight - (vertex.y - mapMinY) / scaleY;
             return new System.Drawing.Point((int)ScreenX, (int)ScreenY);
->>>>>>> ffe9e5368362a07716d042877a1f7e3dd3e403de
 
         }
         public Vertex ToMapVertex(System.Drawing.Point point)
@@ -376,17 +345,11 @@ namespace MyGIS
         }
         public Layer(string name, ShapeType shapeType, Extent extent)
         {
-<<<<<<< HEAD
-            Point screenPoint = view.ToScreenPoint(centroid);
-            graphics.FillEllipse(new SolidBrush(Color.Red),
-                new Rectangle((int)(centroid.x) - 3, (int)(centroid.y) - 3, 6, 6));
-=======
             this.name = name;
             this.shapeType = shapeType;
             this.extent = extent;
             fields = new List<Field>();
         }
->>>>>>> ffe9e5368362a07716d042877a1f7e3dd3e403de
 
         public void Draw(Graphics graphics, View view)
         {
