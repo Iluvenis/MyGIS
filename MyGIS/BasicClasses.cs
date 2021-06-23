@@ -6,22 +6,41 @@ using System.Data.OleDb;
 using System.Drawing;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace MyGIS
 {
-    enum ShapeType
+    public enum ShapeType
     {
         Point = 1,
         Line = 3,
         Polygon = 5
     }
-    enum MapActions
+    public enum MapActions
     {
         ZoomIn, ZoomOut,
         MoveUp, MoveDown, MoveLeft, MoveRight
     };
 
-    class Feature
+    public enum MyTypes
+    {
+        System_Boolean,
+        System_Byte,
+        System_Char,
+        System_Single,
+        System_Double,
+        System_Decimal,
+        System_Int16,
+        System_Int32,
+        System_Int64,
+        System_UInt16,
+        System_UInt32,
+        System_UInt64,
+        System_SByte,
+        System_String
+    }
+
+    public class Feature
     {
         public Spatial spatial;
         public Attribute attribute;
@@ -44,16 +63,16 @@ namespace MyGIS
             return this.attribute.GetValue(index);
         }
     }
-    abstract class Spatial
+    public abstract class Spatial
     {
         public Vertex centroid;
         public Extent extent;
 
         public abstract void Draw(Graphics graphics, View view);
     }
-    class Attribute
+    public class Attribute
     {
-        ArrayList attributes = new ArrayList();
+        ArrayList attributes = new();
 
         public void AddValue(object o)
         {
@@ -61,7 +80,11 @@ namespace MyGIS
         }
         public object GetValue(int index)
         {
-            return attributes[index];
+            if (attributes.Count != 0)
+            {
+                return attributes[index];
+            }
+            return null;
         }
         public void Draw(Graphics graphics, View view, Vertex centriod, int index)
         {
@@ -71,9 +94,14 @@ namespace MyGIS
                 new SolidBrush(Color.Green),
                 new PointF(screenPoint.X, screenPoint.Y));
         }
+
+        public int ValueCount()
+        {
+            return attributes.Count;
+        }
     }
 
-    class Vertex
+    public class Vertex
     {
         public double x;
         public double y;
@@ -82,6 +110,12 @@ namespace MyGIS
         {
             this.x = x;
             this.y = y;
+        }
+
+        public Vertex(BinaryReader binaryReader)
+        {
+            x = binaryReader.ReadDouble();
+            y = binaryReader.ReadDouble();
         }
 
         public double Distance(Vertex vertex)
@@ -93,6 +127,12 @@ namespace MyGIS
         {
             x = vertex.x;
             y = vertex.y;
+        }
+
+        public void WriteVertex(BinaryWriter binaryWriter)
+        {
+            binaryWriter.Write(x);
+            binaryWriter.Write(y);
         }
     }
     class Point : Spatial
@@ -117,7 +157,7 @@ namespace MyGIS
     }
     class Line : Spatial
     {
-        List<Vertex> vertices;
+        public List<Vertex> vertices;
         public double length;
 
         public Line(List<Vertex> vertices)
@@ -141,12 +181,12 @@ namespace MyGIS
 
         public Vertex GetToNode()
         {
-            return vertices[vertices.Count - 1];
+            return vertices[^1];
         }
     }
     class Polygon : Spatial
     {
-        List<Vertex> vertices;
+        public List<Vertex> vertices;
         public double area;
 
         public Polygon(List<Vertex> vertices)
@@ -165,7 +205,7 @@ namespace MyGIS
         }
     }
 
-    class Field
+    public class Field
     {
         public Type dataType;
         public string name;
@@ -177,11 +217,10 @@ namespace MyGIS
         }
     }
 
-    class Extent
+    public class Extent
     {
         //地图的显示范围
-        public GISVertex bottomLeft;
-        public GISVertex topRight;
+
         double zoomingFactor = 2;
         double movingFactor = 0.25;
 
@@ -276,7 +315,7 @@ namespace MyGIS
             bottomLeft.CopyFrom(extent.bottomLeft);
         }
     }
-    class View
+    public class View
     {
         Extent currentMapExtent;
         Rectangle mapWindowSize;
@@ -326,14 +365,14 @@ namespace MyGIS
             Update(currentMapExtent, mapWindowSize);
         }
     }
-    class Layer
+    public class Layer
     {
         public string name;
         public Extent extent;
-        public bool shouldDrawAttribute;
+        public bool shouldDrawAttribute = false;
         public int labelIndex;
         public ShapeType shapeType;
-        List<Feature> features = new List<Feature>();
+        List<Feature> features = new();
         public List<Field> fields;
 
         public Layer(string name, ShapeType shapeType, Extent extent, List<Field> fields)
@@ -389,12 +428,7 @@ namespace MyGIS
 
         ShapefileHeader ReadFileHeader(BinaryReader binaryReader)
         {
-            byte[] buff = binaryReader.ReadBytes(Marshal.SizeOf(typeof(ShapefileHeader)));
-            GCHandle handle = GCHandle.Alloc(buff, GCHandleType.Pinned);
-            ShapefileHeader header = (ShapefileHeader)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(ShapefileHeader));
-            handle.Free();
-
-            return header;
+            return (ShapefileHeader)Tools.FromBytes(binaryReader, typeof(ShapefileHeader));
         }
         Point ReadPoint(byte[] recordContents)
         {
@@ -404,14 +438,14 @@ namespace MyGIS
         }
         public Layer ReadShapefile(string shapefileName)
         {
-            FileStream fileStream = new FileStream(shapefileName, FileMode.Open);
-            BinaryReader binaryReader = new BinaryReader(fileStream);
+            FileStream fileStream = new(shapefileName, FileMode.Open);
+            BinaryReader binaryReader = new(fileStream);
             ShapefileHeader shapefileHeader = ReadFileHeader(binaryReader);
-            ShapeType shapeType = (ShapeType)Enum.Parse(typeof(ShapeType), shapefileHeader.ToString());
-            Extent extent = new Extent(shapefileHeader.minX, shapefileHeader.minY, shapefileHeader.maxX, shapefileHeader.maxY);
+            ShapeType shapeType = (ShapeType)Enum.Parse(typeof(ShapeType), shapefileHeader.shapeType.ToString());
+            Extent extent = new(shapefileHeader.minX, shapefileHeader.minY, shapefileHeader.maxX, shapefileHeader.maxY);
             string dbfFileName = shapefileName.Replace(".shp", ".dbf");
             DataTable table = ReadDBF(dbfFileName);
-            Layer layer = new Layer(shapefileName, shapeType, extent, ReadFields(table));
+            Layer layer = new(shapefileName, shapeType, extent, ReadFields(table));
             int rowIndex = 0;
 
             while (binaryReader.PeekChar() != -1)
@@ -422,7 +456,7 @@ namespace MyGIS
                 if (shapeType == ShapeType.Point)
                 {
                     Point point = ReadPoint(recordContents);
-                    Feature feature = new Feature(point, new Attribute());
+                    Feature feature = new(point, new Attribute());
                     layer.AddFeature(feature);
                 }
 
@@ -431,7 +465,7 @@ namespace MyGIS
                     List<Line> lines = ReadLines(recordContents);
                     for (int i = 0; i < lines.Count; i++)
                     {
-                        Feature feature = new Feature(lines[i], new Attribute());
+                        Feature feature = new(lines[i], new Attribute());
                         layer.AddFeature(feature);
                     }
                 }
@@ -440,7 +474,7 @@ namespace MyGIS
                     List<Polygon> polygons = ReadPolygons(recordContents);
                     for (int i = 0; i < polygons.Count; i++)
                     {
-                        Feature feature = new Feature(polygons[i], new Attribute());
+                        Feature feature = new(polygons[i], new Attribute());
                         layer.AddFeature(feature);
                     }
 
@@ -463,12 +497,7 @@ namespace MyGIS
 
         RecordHeader ReadRecordHeader(BinaryReader binaryReader)
         {
-            byte[] buff = binaryReader.ReadBytes(Marshal.SizeOf(typeof(RecordHeader)));
-            GCHandle handle = GCHandle.Alloc(buff, GCHandleType.Pinned);
-            RecordHeader header = (RecordHeader)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(ShapefileHeader));
-            handle.Free();
-
-            return header;
+            return (RecordHeader)Tools.FromBytes(binaryReader, typeof(RecordHeader));
         }
         int FromBigToLittle(int value)
         {
@@ -499,10 +528,10 @@ namespace MyGIS
 
             parts[n] = m;
 
-            List<Line> lines = new List<Line>();
+            List<Line> lines = new();
             for (int i = 0; i < n; i++)
             {
-                List<Vertex> vertices = new List<Vertex>();
+                List<Vertex> vertices = new();
                 for (int j = parts[i]; j < parts[i + 1]; j++)
                 {
                     double x = BitConverter.ToDouble(recordContent, 40 + n * 4 + j * 16);
@@ -527,11 +556,11 @@ namespace MyGIS
 
             parts[n] = m;
 
-            List<Polygon> polygons = new List<Polygon>();
+            List<Polygon> polygons = new();
 
             for (int i = 0; i < n; i++)
             {
-                List<Vertex> vertices = new List<Vertex>();
+                List<Vertex> vertices = new();
                 for (int j = parts[i]; j < parts[i + 1]; j++)
                 {
                     double x = BitConverter.ToDouble(recordContent, 40 + n * 4 + j * 16);
@@ -545,16 +574,16 @@ namespace MyGIS
         }
         static DataTable ReadDBF(string dbfFileName)
         {
-            System.IO.FileInfo fileInfo = new FileInfo(dbfFileName);
+            System.IO.FileInfo fileInfo = new(dbfFileName);
             DataSet dataSet = null;
-            string conectionString = "Provider=Microsoft.Jet.OLEDB.4.0;Data Sourse=" + fileInfo.DirectoryName + ";Extended Properties=DBASE III";
-            using (OleDbConnection connection = new OleDbConnection(conectionString))
+            string conectionString = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + fileInfo.DirectoryName + ";Extended Properties=dBASE IV;User ID=Admin;";
+            using (OleDbConnection connection = new(conectionString))
             {
-                var sql = "select * from " + fileInfo.Name;
-                OleDbCommand command = new OleDbCommand(sql, connection);
+                string sql = "select  *  from " + fileInfo.Name;
+                OleDbCommand command = new(sql, connection);
                 connection.Open();
                 dataSet = new DataSet();
-                OleDbDataAdapter dataAdapter = new OleDbDataAdapter(command);
+                OleDbDataAdapter dataAdapter = new(command);
                 dataAdapter.Fill(dataSet);
             }
 
@@ -562,7 +591,7 @@ namespace MyGIS
         }
         static List<Field> ReadFields(DataTable table)
         {
-            List<Field> fields = new List<Field>();
+            List<Field> fields = new();
             foreach (DataColumn column in table.Columns)
             {
                 fields.Add(new Field(column.DataType, column.ColumnName));
@@ -572,7 +601,7 @@ namespace MyGIS
         }
         static Attribute ReadAttribute(DataTable table, int rowIndex)
         {
-            Attribute attribute = new Attribute();
+            Attribute attribute = new();
             DataRow row = table.Rows[rowIndex];
             for (int i = 0; i < table.Columns.Count; i++)
             {
@@ -580,6 +609,265 @@ namespace MyGIS
             }
 
             return attribute;
+        }
+    }
+
+    class MyFile
+    {
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        struct MyFileHeader
+        {
+            public double minX, minY, maxX, maxY;
+            public int featureCount, shapeType, fieldCount;
+        };
+
+        static void WriteFileHeader(Layer layer, BinaryWriter binaryWriter)
+        {
+            MyFileHeader myFileHeader = new();
+            myFileHeader.minX = layer.extent.GetMinX();
+            myFileHeader.minY = layer.extent.GetMinY();
+            myFileHeader.maxX = layer.extent.GetMaxX();
+            myFileHeader.maxY = layer.extent.GetMaxY();
+            myFileHeader.featureCount = layer.FeatureCount();
+            myFileHeader.shapeType = (int)(layer.shapeType);
+            myFileHeader.fieldCount = layer.fields.Count;
+            binaryWriter.Write(Tools.ToBytes(myFileHeader));
+        }
+
+        public static void WriteFile(Layer layer, string fileName)
+        {
+            FileStream fileStream = new(fileName, FileMode.Create);
+            BinaryWriter binaryWriter = new(fileStream);
+            WriteFileHeader(layer, binaryWriter);
+            Tools.WriteName(layer.name, binaryWriter);
+            WriteFields(layer.fields, binaryWriter);
+            WriteFeatures(layer, binaryWriter);
+
+            binaryWriter.Close();
+            fileStream.Close();
+        }
+
+        static void WriteFields(List<Field> fields, BinaryWriter binaryWriter)
+        {
+            for (int fieldIndex = 0; fieldIndex < fields.Count; fieldIndex++)
+            {
+                Field field = fields[fieldIndex];
+                binaryWriter.Write(Tools.TypeToInt(field.dataType));
+                Tools.WriteName(field.name, binaryWriter);
+            }
+        }
+
+        static void WriteVertices(List<Vertex> vertices, BinaryWriter binaryWriter)
+        {
+            binaryWriter.Write(vertices.Count);
+            for (int i = 0; i < vertices.Count; i++)
+            {
+                vertices[i].WriteVertex(binaryWriter);
+            }
+        }
+
+        static void WriteAttribute(Attribute attribute, BinaryWriter binaryWriter)
+        {
+            for (int i = 0; i < attribute.ValueCount(); i++)
+            {
+                Type type = attribute.GetValue(i).GetType();
+                switch (type.ToString())
+                {
+                    case("System.Boolean"):
+                        binaryWriter.Write((bool)attribute.GetValue(i));
+                        break;
+                    case ("System.Byte"):
+                        binaryWriter.Write((byte)attribute.GetValue(i));
+                        break;
+                    case ("System.Char"):
+                        binaryWriter.Write((char)attribute.GetValue(i));
+                        break;
+                    case ("System.Single"):
+                        binaryWriter.Write((float)attribute.GetValue(i));
+                        break;
+                    case ("System.Double"):
+                        binaryWriter.Write((double)attribute.GetValue(i));
+                        break;
+                    case ("System.Decimal"):
+                        binaryWriter.Write((decimal)attribute.GetValue(i));
+                        break;
+                    case ("System.Int16"):
+                        binaryWriter.Write((short)attribute.GetValue(i));
+                        break;
+                    case ("System.Int32"):
+                        binaryWriter.Write((int)attribute.GetValue(i));
+                        break;
+                    case ("System.Int64"):
+                        binaryWriter.Write((long)attribute.GetValue(i));
+                        break;
+                    case ("System.UInt16"):
+                        binaryWriter.Write((ushort)attribute.GetValue(i));
+                        break;
+                    case ("System.UInt32"):
+                        binaryWriter.Write((uint)attribute.GetValue(i));
+                        break;
+                    case ("System.UInt64"):
+                        binaryWriter.Write((ulong)attribute.GetValue(i));
+                        break;
+                    case ("System.SByte"):
+                        binaryWriter.Write((sbyte)attribute.GetValue(i));
+                        break;
+                    case ("System.String"):
+                        Tools.WriteName((string)attribute.GetValue(i), binaryWriter);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+
+        static void WriteFeatures(Layer layer, BinaryWriter binaryWriter)
+        {
+            for (int i = 0; i < layer.FeatureCount(); i++)
+            {
+                Feature feature = layer.GetFeature(i);
+                switch (layer.shapeType)
+                {
+                    case ShapeType.Point:
+                        ((Point)feature.spatial).centroid.WriteVertex(binaryWriter);
+                        break;
+                    case ShapeType.Line:
+                        Line line = (Line)(feature.spatial);
+                        WriteVertices(line.vertices, binaryWriter);
+                        break;
+                    case ShapeType.Polygon:
+                        Polygon polygon = (Polygon)(feature.spatial);
+                        WriteVertices(polygon.vertices, binaryWriter);
+                        break;
+                    default:
+                        break;
+                }
+                WriteAttribute(feature.attribute, binaryWriter);
+            }
+        }
+
+        static List<Field> ReadFields(BinaryReader binaryReader, int fieldCount)
+        {
+            List<Field> fields = new();
+            for (int i = 0; i < fieldCount; i++)
+            {
+                Type type = Tools.IntToType(binaryReader.ReadInt32());
+                string name = Tools.ReadString(binaryReader);
+                fields.Add(new Field(type, name));
+            }
+
+            return fields;
+        }
+
+        static List<Vertex> ReadVertices(BinaryReader binaryReader)
+        {
+            List<Vertex> vertices = new();
+            int verticesCount = binaryReader.ReadInt32();
+            for (int i = 0; i < verticesCount; i++)
+            {
+                vertices.Add(new Vertex(binaryReader));
+            }
+
+            return vertices;
+        }
+
+        static Attribute ReadAttributes(List<Field> fields, BinaryReader binaryReader)
+        {
+            Attribute attribute = new();
+            for (int i = 0; i < fields.Count; i++)
+            {
+                Type type = fields[i].dataType;
+                switch (type.ToString())
+                {
+                    case ("System.Boolean"):
+                        attribute.AddValue(binaryReader.ReadBoolean());
+                        break;
+                    case ("System.Byte"):
+                        attribute.AddValue(binaryReader.ReadByte());
+                        break;
+                    case ("System.Char"):
+                        attribute.AddValue(binaryReader.ReadChar());
+                        break;
+                    case ("System.Single"):
+                        attribute.AddValue(binaryReader.ReadSingle());
+                        break;
+                    case ("System.Double"):
+                        attribute.AddValue(binaryReader.ReadDouble());
+                        break;
+                    case ("System.Decimal"):
+                        attribute.AddValue(binaryReader.ReadDecimal()); 
+                        break;
+                    case ("System.Int16"):
+                        attribute.AddValue(binaryReader.ReadInt16()); 
+                        break;
+                    case ("System.Int32"):
+                        attribute.AddValue(binaryReader.ReadInt32()); 
+                        break;
+                    case ("System.Int64"):
+                        attribute.AddValue(binaryReader.ReadInt64()); 
+                        break;
+                    case ("System.UInt16"):
+                        attribute.AddValue(binaryReader.ReadUInt16()); 
+                        break;
+                    case ("System.UInt32"):
+                        attribute.AddValue(binaryReader.ReadUInt32()); 
+                        break;
+                    case ("System.UInt64"):
+                        attribute.AddValue(binaryReader.ReadUInt64()); 
+                        break;
+                    case ("System.SByte"):
+                        attribute.AddValue(binaryReader.ReadSByte()); 
+                        break;
+                    case ("System.String"):
+                        attribute.AddValue(Tools.ReadString(binaryReader));
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            return attribute;
+        }
+
+        static void ReadFeatures(Layer layer, BinaryReader binaryReader, int FeatureCount)
+        {
+            for (int i = 0; i < FeatureCount; i++)
+            {
+                Feature feature = new(null, null);
+                switch (layer.shapeType)
+                {
+                    case ShapeType.Point:
+                        feature.spatial = new Point(new Vertex(binaryReader));
+                        break;
+                    case ShapeType.Line:
+                        feature.spatial = new Line(ReadVertices(binaryReader));
+                        break;
+                    case ShapeType.Polygon:
+                        feature.spatial = new Polygon(ReadVertices(binaryReader));
+                        break;
+                    default:
+                        break;
+                }
+                feature.attribute = ReadAttributes(layer.fields, binaryReader);
+                layer.AddFeature(feature);
+            }
+        }
+
+        public static Layer ReadFile(string fileName)
+        {
+            FileStream fileStream = new(fileName, FileMode.Open);
+            BinaryReader binaryReader = new(fileStream);
+            MyFileHeader myFileHeader = (MyFileHeader)(Tools.FromBytes(binaryReader, typeof(MyFileHeader)));
+            ShapeType shapeType = (ShapeType)Enum.Parse(typeof(ShapeType), myFileHeader.shapeType.ToString());
+            Extent extent = new(myFileHeader.minX, myFileHeader.minY, myFileHeader.maxX, myFileHeader.maxY);
+            string layerName = Tools.ReadString(binaryReader);
+            List<Field> fields = ReadFields(binaryReader, myFileHeader.fieldCount);
+            Layer layer = new(layerName, shapeType, extent, fields);
+            ReadFeatures(layer, binaryReader, myFileHeader.featureCount);
+            binaryReader.Close();
+            fileStream.Close();
+
+            return layer;
         }
     }
 
@@ -652,7 +940,7 @@ namespace MyGIS
             {
                 area += VectorProduct(vertices[i], vertices[i + 1]);
             }
-            area += VectorProduct(vertices[vertices.Count - 1], vertices[0]);
+            area += VectorProduct(vertices[^1], vertices[0]);
 
             return area / 2;
         }
@@ -669,6 +957,59 @@ namespace MyGIS
             }
 
             return points;
+        }
+        public static byte[] ToBytes(object o)
+        {
+            byte[] bytes = new byte[Marshal.SizeOf(o.GetType())];
+            GCHandle handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+            Marshal.StructureToPtr(o, handle.AddrOfPinnedObject(), false);
+            handle.Free();
+            return bytes;
+        }
+        public static void WriteName(string name, BinaryWriter binaryWriter)
+        {
+            binaryWriter.Write(StringLength(name));
+            byte[] bytes = Encoding.Default.GetBytes(name);
+            binaryWriter.Write(bytes);
+        }
+        public static int StringLength(string str)
+        {
+            int ChineseCount = 0;
+            byte[] bytes = new ASCIIEncoding().GetBytes(str);
+            foreach (byte b in bytes)
+            {
+                if (b == 0X3F)
+                {
+                    ChineseCount++;
+                }
+            }
+
+            return ChineseCount + bytes.Length;
+        }
+        public static int TypeToInt(Type type)
+        {
+            MyTypes myType = (MyTypes)Enum.Parse(typeof(MyTypes), type.ToString().Replace(".", "_"));
+            return (int)myType;
+        }
+        public static object FromBytes(BinaryReader binaryReader, Type type)
+        {
+            byte[] bytes = binaryReader.ReadBytes(Marshal.SizeOf(type));
+            GCHandle handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+            object result = Marshal.PtrToStructure(handle.AddrOfPinnedObject(), type);
+            handle.Free();
+            return result;
+        }
+        public static string ReadString(BinaryReader binaryReader)
+        {
+            int length = binaryReader.ReadInt32();
+            byte[] bytes = binaryReader.ReadBytes(length);
+            return Encoding.Default.GetString(bytes);
+        }
+        public static Type IntToType(int index)
+        {
+            string typeString = Enum.GetName(typeof(MyTypes), index);
+            typeString = typeString.Replace("_", ".");
+            return Type.GetType(typeString);
         }
     }
 }

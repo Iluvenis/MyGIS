@@ -4,11 +4,18 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net5.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
+    <Platforms>AnyCPU;x86</Platforms>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="System.Data.OleDb" Version="5.0.0" />
     <PackageReference Include="System.Runtime" Version="4.3.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Data.OleDb">
+      <HintPath>bin\Debug\net5.0-windows\runtimes\win\lib\netstandard2.0\System.Data.OleDb.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>
