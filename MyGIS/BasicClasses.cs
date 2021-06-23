@@ -456,7 +456,7 @@ namespace MyGIS
                 if (shapeType == ShapeType.Point)
                 {
                     Point point = ReadPoint(recordContents);
-                    Feature feature = new(point, new Attribute());
+                    Feature feature = new(point, ReadAttribute(table, rowIndex));
                     layer.AddFeature(feature);
                 }
 
@@ -465,7 +465,7 @@ namespace MyGIS
                     List<Line> lines = ReadLines(recordContents);
                     for (int i = 0; i < lines.Count; i++)
                     {
-                        Feature feature = new(lines[i], new Attribute());
+                        Feature feature = new(lines[i], ReadAttribute(table, rowIndex));
                         layer.AddFeature(feature);
                     }
                 }
@@ -474,7 +474,7 @@ namespace MyGIS
                     List<Polygon> polygons = ReadPolygons(recordContents);
                     for (int i = 0; i < polygons.Count; i++)
                     {
-                        Feature feature = new(polygons[i], new Attribute());
+                        Feature feature = new(polygons[i], ReadAttribute(table, rowIndex));
                         layer.AddFeature(feature);
                     }
 
@@ -574,7 +574,7 @@ namespace MyGIS
         }
         static DataTable ReadDBF(string dbfFileName)
         {
-            System.IO.FileInfo fileInfo = new(dbfFileName);
+            FileInfo fileInfo = new(dbfFileName);
             DataSet dataSet = null;
             string conectionString = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + fileInfo.DirectoryName + ";Extended Properties=dBASE IV;User ID=Admin;";
             using (OleDbConnection connection = new(conectionString))
