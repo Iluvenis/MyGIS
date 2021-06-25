@@ -25,6 +25,7 @@ namespace MyGIS
     public enum MyTypes
     {
         System_Boolean,
+        System_SByte,
         System_Byte,
         System_Char,
         System_Single,
@@ -36,7 +37,6 @@ namespace MyGIS
         System_UInt16,
         System_UInt32,
         System_UInt64,
-        System_SByte,
         System_String
     }
 
@@ -864,6 +864,7 @@ namespace MyGIS
             List<Field> fields = ReadFields(binaryReader, myFileHeader.fieldCount);
             Layer layer = new(layerName, shapeType, extent, fields);
             ReadFeatures(layer, binaryReader, myFileHeader.featureCount);
+
             binaryReader.Close();
             fileStream.Close();
 
