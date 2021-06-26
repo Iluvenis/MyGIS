@@ -973,7 +973,7 @@ namespace MyGIS
         public static void WriteName(string name, BinaryWriter binaryWriter)
         {
             binaryWriter.Write(Encoding.UTF8.GetByteCount(name));
-            byte[] bytes = Encoding.Default.GetBytes(name);
+            byte[] bytes = Encoding.UTF8.GetBytes(name);
             binaryWriter.Write(bytes);
         }
         public static int TypeToInt(Type type)
