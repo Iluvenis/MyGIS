@@ -111,7 +111,7 @@ namespace MyGIS
             this.buttonOpenShapeFile.TabIndex = 22;
             this.buttonOpenShapeFile.Text = "打开.shp文件";
             this.buttonOpenShapeFile.UseVisualStyleBackColor = true;
-            this.buttonOpenShapeFile.Click += new System.EventHandler(this.ButtonOpenFile_Click);
+            this.buttonOpenShapeFile.Click += new System.EventHandler(this.ButtonOpenShapeFile_Click);
             // 
             // buttonShowFullMap
             // 
@@ -152,7 +152,7 @@ namespace MyGIS
             this.buttonOpenFile.TabIndex = 26;
             this.buttonOpenFile.Text = "打开文件";
             this.buttonOpenFile.UseVisualStyleBackColor = true;
-            this.buttonOpenFile.Click += new System.EventHandler(this.ButtonOpenFile_Click_1);
+            this.buttonOpenFile.Click += new System.EventHandler(this.ButtonOpenFile_Click);
             // 
             // MainForm
             // 

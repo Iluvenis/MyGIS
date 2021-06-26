@@ -60,7 +60,7 @@ namespace MyGIS
             UpdateMap();
         }
 
-        private void ButtonOpenFile_Click(object sender, EventArgs e)
+        private void ButtonOpenShapeFile_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new();
             openFileDialog.Filter = "Shapefile 文件|*.shp";
@@ -102,7 +102,7 @@ namespace MyGIS
         {
             SaveFileDialog saveFileDialog = new();
             saveFileDialog.Filter = "mgdb files (*.mgdb)|*.mgdb|All files (*.*)|*.*";
-            saveFileDialog.FilterIndex = 2;
+            saveFileDialog.FilterIndex = 1;
             saveFileDialog.RestoreDirectory = true;
             if (saveFileDialog.ShowDialog() != DialogResult.OK)
             {
@@ -112,7 +112,7 @@ namespace MyGIS
             MessageBox.Show("Done.");
         }
 
-        private void ButtonOpenFile_Click_1(object sender, EventArgs e)
+        private void ButtonOpenFile_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new();
             openFileDialog.Filter = "mgdb files (*.mgdb)|*.mgdb|All files (*.*)|*.*";

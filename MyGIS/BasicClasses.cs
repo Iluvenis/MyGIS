@@ -649,9 +649,8 @@ namespace MyGIS
 
         static void WriteFields(List<Field> fields, BinaryWriter binaryWriter)
         {
-            for (int fieldIndex = 0; fieldIndex < fields.Count; fieldIndex++)
+            foreach (Field field in fields)
             {
-                Field field = fields[fieldIndex];
                 binaryWriter.Write(Tools.TypeToInt(field.dataType));
                 Tools.WriteName(field.name, binaryWriter);
             }
@@ -660,9 +659,9 @@ namespace MyGIS
         static void WriteVertices(List<Vertex> vertices, BinaryWriter binaryWriter)
         {
             binaryWriter.Write(vertices.Count);
-            for (int i = 0; i < vertices.Count; i++)
+            foreach (Vertex vertex in vertices)
             {
-                vertices[i].WriteVertex(binaryWriter);
+                vertex.WriteVertex(binaryWriter);
             }
         }
 
