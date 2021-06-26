@@ -8,8 +8,8 @@ namespace MyGIS
     public partial class MainForm : Form
     {
         Layer layer = null;
-        View view = null;
-        List<Feature> features = new();
+        readonly View view = null;
+        readonly List<Feature> features = new();
         public MainForm()
         {
             InitializeComponent();
@@ -71,8 +71,7 @@ namespace MyGIS
             {
                 return;
             }
-            Shapefile shapefile = new();
-            layer = shapefile.ReadShapefile(openFileDialog.FileName);
+            layer = Shapefile.ReadShapefile(openFileDialog.FileName);
             layer.shouldDrawAttribute = false;
             MessageBox.Show("Read" + layer.FeatureCount() + "objects.");
             view.UpdateExtent(layer.extent);

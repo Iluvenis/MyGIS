@@ -72,7 +72,7 @@ namespace MyGIS
     }
     public class Attribute
     {
-        ArrayList attributes = new();
+        readonly ArrayList attributes = new();
 
         public void AddValue(object o)
         {
@@ -221,8 +221,8 @@ namespace MyGIS
     {
         //地图的显示范围
 
-        double zoomingFactor = 2;
-        double movingFactor = 0.25;
+        readonly double zoomingFactor = 2;
+        readonly double movingFactor = 0.25;
 
 
         public Vertex bottomLeft;
@@ -372,7 +372,7 @@ namespace MyGIS
         public bool shouldDrawAttribute = false;
         public int labelIndex;
         public ShapeType shapeType;
-        List<Feature> features = new();
+        readonly List<Feature> features = new();
         public List<Field> fields;
 
         public Layer(string name, ShapeType shapeType, Extent extent, List<Field> fields)
@@ -426,17 +426,18 @@ namespace MyGIS
             public double unused9, unused10, unused11, unused12;
         }
 
-        ShapefileHeader ReadFileHeader(BinaryReader binaryReader)
+        static ShapefileHeader ReadFileHeader(BinaryReader binaryReader)
         {
             return (ShapefileHeader)Tools.FromBytes(binaryReader, typeof(ShapefileHeader));
         }
-        Point ReadPoint(byte[] recordContents)
+
+        static Point ReadPoint(byte[] recordContents)
         {
             double x = BitConverter.ToDouble(recordContents, 0);
             double y = BitConverter.ToDouble(recordContents, 8);
             return new Point(new Vertex(x, y));
         }
-        public Layer ReadShapefile(string shapefileName)
+        public static Layer ReadShapefile(string shapefileName)
         {
             FileStream fileStream = new(shapefileName, FileMode.Open);
             BinaryReader binaryReader = new(fileStream);
@@ -495,11 +496,12 @@ namespace MyGIS
             public int shapeType;
         }
 
-        RecordHeader ReadRecordHeader(BinaryReader binaryReader)
+        static RecordHeader ReadRecordHeader(BinaryReader binaryReader)
         {
             return (RecordHeader)Tools.FromBytes(binaryReader, typeof(RecordHeader));
         }
-        int FromBigToLittle(int value)
+
+        static int FromBigToLittle(int value)
         {
             byte[] bytes = new byte[4];
 
@@ -515,7 +517,8 @@ namespace MyGIS
 
             return BitConverter.ToInt32(bytes, 0);
         }
-        List<Line> ReadLines(byte[] recordContent)
+
+        static List<Line> ReadLines(byte[] recordContent)
         {
             int n = BitConverter.ToInt32(recordContent, 32);
             int m = BitConverter.ToInt32(recordContent, 36);
@@ -543,7 +546,8 @@ namespace MyGIS
 
             return lines;
         }
-        List<Polygon> ReadPolygons(byte[] recordContent)
+
+        static List<Polygon> ReadPolygons(byte[] recordContent)
         {
             int n = BitConverter.ToInt32(recordContent, 32);
             int m = BitConverter.ToInt32(recordContent, 36);
@@ -968,23 +972,9 @@ namespace MyGIS
         }
         public static void WriteName(string name, BinaryWriter binaryWriter)
         {
-            binaryWriter.Write(StringLength(name));
+            binaryWriter.Write(Encoding.UTF8.GetByteCount(name));
             byte[] bytes = Encoding.Default.GetBytes(name);
             binaryWriter.Write(bytes);
-        }
-        public static int StringLength(string str)
-        {
-            int ChineseCount = 0;
-            byte[] bytes = new ASCIIEncoding().GetBytes(str);
-            foreach (byte b in bytes)
-            {
-                if (b == 0X3F)
-                {
-                    ChineseCount++;
-                }
-            }
-
-            return ChineseCount + bytes.Length;
         }
         public static int TypeToInt(Type type)
         {
