@@ -86,6 +86,10 @@ namespace MyGIS
 
         private void UpdateMap()
         {
+            if (layer.fields.Count != 0)
+            {
+                buttonOpenAttribute.Enabled = true;
+            }
             Graphics graphics = CreateGraphics();
             graphics.FillRectangle(new SolidBrush(Color.Black), ClientRectangle);
             layer.Draw(graphics, view);

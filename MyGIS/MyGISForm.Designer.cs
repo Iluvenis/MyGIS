@@ -133,6 +133,7 @@ namespace MyGIS
             this.buttonOpenAttribute.Text = "打开属性表";
             this.buttonOpenAttribute.UseVisualStyleBackColor = true;
             this.buttonOpenAttribute.Click += new System.EventHandler(this.ButtonOpenAttribute_Click);
+            this.buttonOpenAttribute.Enabled = false;
             // 
             // buttonSaveFile
             // 

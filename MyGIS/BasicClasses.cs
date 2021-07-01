@@ -580,6 +580,10 @@ namespace MyGIS
         {
             FileInfo fileInfo = new(dbfFileName);
             DataSet dataSet = null;
+            if (!Directory.Exists(dbfFileName))
+            {
+                return null;
+            }
             string conectionString = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + fileInfo.DirectoryName + ";Extended Properties=dBASE IV;User ID=Admin;";
             using (OleDbConnection connection = new(conectionString))
             {
@@ -596,6 +600,10 @@ namespace MyGIS
         static List<Field> ReadFields(DataTable table)
         {
             List<Field> fields = new();
+            if (table == null)
+            {
+                return fields;
+            }
             foreach (DataColumn column in table.Columns)
             {
                 fields.Add(new Field(column.DataType, column.ColumnName));
@@ -606,6 +614,10 @@ namespace MyGIS
         static Attribute ReadAttribute(DataTable table, int rowIndex)
         {
             Attribute attribute = new();
+            if (table == null)
+            {
+                return attribute ;
+            }
             DataRow row = table.Rows[rowIndex];
             for (int i = 0; i < table.Columns.Count; i++)
             {
@@ -924,6 +936,18 @@ namespace MyGIS
                     maxY = vertices[i].y;
                 }
             }
+
+            if (minX == maxX)
+            {
+                minX -= 10;
+                maxX += 10;
+            }
+            if (minY == maxY)
+            {
+                minY -= 10;
+                maxY += 10;
+            }
+
             return new Extent(minX, minY, maxX, maxY);
 
         }
