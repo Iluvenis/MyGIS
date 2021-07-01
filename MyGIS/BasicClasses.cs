@@ -580,7 +580,7 @@ namespace MyGIS
         {
             FileInfo fileInfo = new(dbfFileName);
             DataSet dataSet = null;
-            if (!Directory.Exists(dbfFileName))
+            if (!File.Exists(dbfFileName))
             {
                 return null;
             }

@@ -118,12 +118,21 @@ namespace MyGIS
         private void ButtonOpenFile_Click(object sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new();
-            openFileDialog.Filter = "mgdb files (*.mgdb)|*.mgdb|All files (*.*)|*.*";
+            openFileDialog.Filter = "Shapefile 文件|*.shp|mgdb files (*.mgdb)|*.mgdb|All files (*.*)|*.*";
             openFileDialog.RestoreDirectory = true;
-            openFileDialog.FilterIndex = 1;
+            openFileDialog.FilterIndex = 2;
             openFileDialog.Multiselect = false;
             if (openFileDialog.ShowDialog() != DialogResult.OK)
             {
+                return;
+            }
+            if (openFileDialog.FileName.EndsWith(".shp"))
+            {
+                layer = Shapefile.ReadShapefile(openFileDialog.FileName);
+                layer.shouldDrawAttribute = false;
+                MessageBox.Show("Read" + layer.FeatureCount() + "objects.");
+                view.UpdateExtent(layer.extent);
+                UpdateMap();
                 return;
             }
             layer = MyFile.ReadFile(openFileDialog.FileName);
