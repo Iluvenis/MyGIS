@@ -18,33 +18,44 @@ namespace MyGIS
 
         private void Main_MouseClick(object sender, MouseEventArgs e)
         {
-            Vertex clickCentroid = new(view.ToMapVertex(e.Location).x, view.ToMapVertex(e.Location).y);
-            double minDistance = double.MaxValue;
-            int id = -1;
-            for (int i = 0; i < features.Count; i++)
-            {
-                double distance = features[i].spatial.centroid.Distance(clickCentroid);
-                if (distance < minDistance)
-                {
-                    id = i;
-                    minDistance = distance;
-                }
-            }
-            if (id == -1)
-            {
-                MessageBox.Show("没有实体！");
+            //Vertex clickCentroid = new(view.ToMapVertex(e.Location).x, view.ToMapVertex(e.Location).y);
+            //double minDistance = double.MaxValue;
+            //int id = -1;
+            //for (int i = 0; i < features.Count; i++)
+            //{
+            //    double distance = features[i].spatial.centroid.Distance(clickCentroid);
+            //    if (distance < minDistance)
+            //    {
+            //        id = i;
+            //        minDistance = distance;
+            //    }
+            //}
+            //if (id == -1)
+            //{
+            //    MessageBox.Show("没有实体！");
 
+            //    return;
+            //}
+            //Vertex nearestVertex = features[id].spatial.centroid;
+            //double screendistance = Math.Abs(view.ToScreenPoint(nearestVertex).X - e.X) + Math.Abs(view.ToScreenPoint(nearestVertex).Y - e.Y);
+            //if (screendistance > 5)
+            //{
+            //    MessageBox.Show("请靠实体点击！");
+
+            //    return;
+            //}
+            //MessageBox.Show("该实体属性为：" + features[id].GetAttribute(0));
+
+            if (layer == null)
+            {
                 return;
             }
-            Vertex nearestVertex = features[id].spatial.centroid;
-            double screendistance = Math.Abs(view.ToScreenPoint(nearestVertex).X - e.X) + Math.Abs(view.ToScreenPoint(nearestVertex).Y - e.Y);
-            if (screendistance > 5)
+            Vertex vertex = view.ToMapVertex(new System.Drawing.Point(e.X, e.Y));
+            MouseSelect mouseSelect = new();
+            if (mouseSelect.Select(vertex, layer.GetAllFeatures(), layer.shapeType, view) ==SelectResult.Selected)
             {
-                MessageBox.Show("请靠实体点击！");
-
-                return;
+                MessageBox.Show(mouseSelect.selectedFeature.GetAttribute(0).ToString());
             }
-            MessageBox.Show("该实体属性为：" + features[id].GetAttribute(0));
         }
 
         private void ButtonMapAction_Click(object sender, EventArgs e)

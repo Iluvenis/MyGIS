@@ -40,6 +40,14 @@ namespace MyGIS
         System_String
     }
 
+    public enum SelectResult 
+    { 
+        Selected,
+        EmptySet,
+        TooFar,
+        UnknownType
+    }
+
     public class Feature
     {
         public Spatial spatial;
@@ -168,6 +176,16 @@ namespace MyGIS
             length = Tools.CalculateLength(vertices);
         }
 
+        public double Distance(Vertex vertex)
+        {
+            double distance = double.MaxValue;
+            for (int i = 0; i < vertices.Count - 1; i++)
+            {
+                distance = Math.Min(Tools.PointToSegment(vertices[i], vertices[i + 1], vertex), distance);
+            }
+            return distance;
+        }
+
         public override void Draw(Graphics graphics, View view)
         {
             System.Drawing.Point[] points = Tools.GetScreenPoints(vertices, view);
@@ -227,6 +245,11 @@ namespace MyGIS
 
         public Vertex bottomLeft;
         public Vertex topRight;
+
+        public bool InsertectOrNot(Extent extent)
+        {
+            return !(GetMaxX() < extent.GetMinX() || GetMaxX() > extent.GetMaxX() || GetMaxY() < extent.GetMinY() || GetMaxY() > extent.GetMaxY());
+        }
 
         public void ChangeExtent(MapActions action)
         {
@@ -324,6 +347,18 @@ namespace MyGIS
         double mapWidth, mapHeight;
         double scaleX, scaleY;
 
+        public double ToScreenDistance(double distance)
+        {
+            return ToScreenDistance(new Vertex(0, 0), new Vertex(0, distance));
+        }
+
+        public double ToScreenDistance(Vertex vertex1, Vertex vertex2)
+        {
+            System.Drawing.Point point1 = ToScreenPoint(vertex1);
+            System.Drawing.Point point2 = ToScreenPoint(vertex2);
+            return Math.Sqrt((double)((point1.X - point2.X) * (point1.X - point2.X) + (point1.Y - point2.Y) * (point1.Y - point2.Y)));
+        }
+
         public View(Extent extent, Rectangle rectangle)
         {
             Update(extent, rectangle);
@@ -374,6 +409,11 @@ namespace MyGIS
         public ShapeType shapeType;
         readonly List<Feature> features = new();
         public List<Field> fields;
+
+        public List<Feature> GetAllFeatures()
+        {
+            return features;
+        }
 
         public Layer(string name, ShapeType shapeType, Extent extent, List<Field> fields)
         {
@@ -889,6 +929,36 @@ namespace MyGIS
 
     class Tools
     {
+        public static double PointToSegment(Vertex A, Vertex B, Vertex C)
+        {
+            double dot1 = Dot3Product(A, B, C);
+            if (dot1 > 0)
+            {
+                return B.Distance(C);
+            }
+            double dot2 = Dot3Product(B, A, C);
+            if (dot2> 0)
+            {
+                return A.Distance(C);
+            }
+            double dist = Cross3Product(A, B, C) / A.Distance(B);
+            return Math.Abs(dist);
+        }
+
+        static double Dot3Product(Vertex A, Vertex B, Vertex C)
+        {
+            Vertex AB = new Vertex(B.x - A.x, B.y - A.y);
+            Vertex BC = new Vertex(C.x - B.x, C.y - B.y);
+            return AB.x * BC.x + AB.y * BC.y;
+        }
+
+        static double Cross3Product(Vertex A, Vertex B, Vertex C)
+        {
+            Vertex AB = new Vertex(B.x - A.x, B.y - A.y);
+            Vertex AC = new Vertex(A.x - B.x, A.y - B.y);
+            return VectorProduct(AB, AC);
+        }
+
         public static Vertex CalculateCentroid(List<Vertex> vertices)
         {
             if (vertices.Count == 0)
@@ -1025,5 +1095,122 @@ namespace MyGIS
             typeString = typeString.Replace("_", ".");
             return Type.GetType(typeString);
         }
+    }
+
+    public class MouseSelect
+    {
+        public Feature selectedFeature = null;
+        public SelectResult Select(Vertex vertex, List<Feature> features, ShapeType shapeType, View view)
+        {
+            if (features.Count == 0)
+            {
+                return SelectResult.EmptySet;
+            }
+            Extent minSelectExtent = BuildExtent(vertex, view);
+            switch (shapeType)
+            {
+                case ShapeType.Point:
+                    return SelectPoint(vertex, features, view, minSelectExtent);
+                case ShapeType.Line:
+                    return SelectLine(vertex, features, view, minSelectExtent);
+                case ShapeType.Polygon:
+                    return SelectPolygon(vertex, features, view, minSelectExtent);
+            }
+            return SelectResult.UnknownType;
+        }
+        public Extent BuildExtent(Vertex vertex, View view)
+        {
+            System.Drawing.Point point0 = view.ToScreenPoint(vertex);
+            System.Drawing.Point point1 = new System.Drawing.Point(point0.X + (int)MyConst.MinScreenDistance, point0.Y + (int)MyConst.MinScreenDistance);
+            System.Drawing.Point point2 = new System.Drawing.Point(point0.X - (int)MyConst.MinScreenDistance, point0.Y - (int)MyConst.MinScreenDistance);
+            Vertex vertex1 = view.ToMapVertex(point1);
+            Vertex vertex2 = view.ToMapVertex(point2);
+            return new Extent(vertex1.x, vertex2.x, vertex1.y, vertex2.y);
+        }
+        public SelectResult SelectPoint(Vertex vertex, List<Feature> features, View view, Extent minSelectExtent)
+        {
+            double distance = double.MaxValue;
+            int id = -1;
+            for (int i = 0; i < features.Count; i++)
+            {
+                if (minSelectExtent.InsertectOrNot(features[i].spatial.extent) == false)
+                {
+                    continue;
+                }
+                Point point = (Point)(features[i].spatial);
+                double dist = point.Distance(vertex);
+                if (dist < distance)
+                {
+                    distance = dist;
+                    id = i;
+                }
+
+            }
+            if (id == -1)
+            {
+                selectedFeature = null;
+                return SelectResult.TooFar;
+            }
+            else
+            {
+                double screenDistance = view.ToScreenDistance(vertex, features[id].spatial.centroid);
+                if (screenDistance <= MyConst.MinScreenDistance)
+                {
+                    selectedFeature = features[id];
+                    return SelectResult.Selected;
+                }
+                else
+                {
+                    selectedFeature = null;
+                    return SelectResult.TooFar;
+                }
+            }
+        }
+        public SelectResult SelectLine(Vertex vertex, List<Feature> features, View view, Extent minSelectExtent)
+        {
+            double distance = double.MaxValue;
+            int id = -1;
+            for (int i = 0; i < features.Count; i++)
+            {
+                if (minSelectExtent.InsertectOrNot(features[i].spatial.extent) == false)
+                {
+                    continue;
+                }
+                Line line = (Line)(features[i].spatial);
+                double dist = line.Distance(vertex);
+                if (dist < distance)
+                {
+                    distance = dist;
+                    id = i;
+                }
+            }
+            if (id == -1)
+            {
+                selectedFeature = null;
+                return SelectResult.TooFar;
+            }
+            else
+            {
+                double screenDistance = view.ToScreenDistance(distance);
+                if (screenDistance < MyConst.MinScreenDistance)
+                {
+                    selectedFeature = features[id];
+                    return SelectResult.Selected;
+                }
+                else
+                {
+                    selectedFeature = null;
+                    return SelectResult.TooFar;
+                }
+            }
+        }
+        public SelectResult SelectPolygon(Vertex vertex, List<Feature> features, View view, Extent minSelectExtent)
+        {
+            return SelectResult.TooFar;
+        }
+    }
+    public class MyConst 
+    {
+        public static double MinScreenDistance = 5;
     }
 }
